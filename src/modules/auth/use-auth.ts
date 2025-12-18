@@ -15,7 +15,7 @@ export function useAuth() {
             }
 
             // 2. Browser native passkey creation
-            const attResp = await startRegistration(optionsRes.data);
+            const attResp = await startRegistration({ optionsJSON: optionsRes.data });
 
             // 3. Verify with server
             const verifyRes = await registerVerify(optionsRes.data.user.id, attResp);
@@ -41,7 +41,7 @@ export function useAuth() {
             }
 
             // 2. Browser native passkey assertion
-            const asseResp = await startAuthentication(optionsRes.data);
+            const asseResp = await startAuthentication({ optionsJSON: optionsRes.data });
 
             // 3. Verify with server
             const verifyRes = await loginVerify(asseResp);
