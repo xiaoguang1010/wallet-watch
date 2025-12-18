@@ -7,7 +7,7 @@ import { monitoredAddresses } from '@/data/schema/addresses';
 import { getCurrentUser } from '@/modules/auth/auth.actions';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { redirect } from '@/i18n/routing';
 import { createCaseSchema, CreateCaseInput } from './cases.schema';
 
@@ -111,25 +111,14 @@ export async function deleteCaseAction(caseId: string) {
     }
 
     try {
-        const deleted = await db.delete(cases)
+        // Ensure only the owner can delete
+        const result = await db.delete(cases)
             .where(
-                // Ensure only the owner can delete
-                // Combined check: ID matches AND User matches
-                // Note: Drizzle delete returning logic might vary by driver, so we rely on where clause security
-                db.eq(cases.id, caseId) && db.eq(cases.userId, user.id) as any
+                and(
+                    eq(cases.id, caseId),
+                    eq(cases.userId, user.id)
+                )
             );
-
-        // Explicitly check ownership before delete if needed, but the AND condition in WHERE is safer
-        // Re-implementing with explicit check for clarity
-        const existing = await db.query.cases.findFirst({
-            where: eq(cases.id, caseId),
-        });
-
-        if (!existing || existing.userId !== user.id) {
-            return { error: "Case not found or unauthorized" };
-        }
-
-        await db.delete(cases).where(eq(cases.id, caseId));
 
         revalidatePath('/dashboard');
         return { success: true };
