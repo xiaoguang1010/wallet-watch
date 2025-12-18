@@ -1,4 +1,5 @@
 import { Link, redirect } from '@/i18n/routing';
+import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { Button } from "@/components/ui/button";
 import {
@@ -31,10 +32,10 @@ export default async function DashboardLayout({
             {/* Sidebar */}
             <aside className="w-64 border-r bg-background hidden md:flex flex-col">
                 <div className="p-6 border-b flex items-center gap-2 font-bold text-xl">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-                        <Wallet className="w-5 h-5" />
+                    <div className="flex items-center justify-center">
+                        <Image src="/imKey.svg" alt="imKey Logo" width={32} height={32} className="w-8 h-8" />
                     </div>
-                    Wallet Watch
+                    Asset Watch
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2">
@@ -76,7 +77,7 @@ export default async function DashboardLayout({
             <main className="flex-1 flex flex-col">
                 {/* Mobile Header (simplified) */}
                 <header className="h-16 md:hidden border-b bg-background flex items-center px-4 justify-between">
-                    <span className="font-bold">Wallet Watch</span>
+                    <span className="font-bold">Asset Watch</span>
                     <Button variant="ghost" size="icon">
                         <LayoutDashboard className="w-5 h-5" />
                     </Button>
