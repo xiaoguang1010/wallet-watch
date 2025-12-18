@@ -12,15 +12,18 @@ import { logout } from "@/modules/auth/auth.actions";
 
 export default async function DashboardLayout({
     children,
+    params,
 }: {
     children: React.ReactNode;
+    params: Promise<{ locale: string }>;
 }) {
     // Simple Session Check
     const cookieStore = await cookies();
     const userId = cookieStore.get("session_user_id");
+    const { locale } = await params;
 
     if (!userId) {
-        redirect("/auth/login");
+        redirect({ href: "/auth/login", locale });
     }
 
     return (
@@ -59,13 +62,7 @@ export default async function DashboardLayout({
                     <form action={async () => {
                         'use server';
                         await logout();
-                        redirect({ href: '/auth/login', locale: 'zh' }); // Force ZH or use path if supported. redirect('/auth/login') should work.
-                        // Actually, next-intl redirect takes 2 args? No, typical is redirect(path).
-                        // Let's stick to simple redirect('/auth/login') and if next-intl works it works.
-                        // But wait, the user's issue implies next-intl redirect might be defaulting to something context-less.
-                        // Safest: Use native redirect with absolute logic if possible, or trust next-intl.
-                        // Let's try redirect('/auth/login') first.
-                        redirect('/auth/login');
+                        redirect({ href: '/auth/login', locale });
                     }}>
                         <Button variant="outline" className="w-full gap-2 text-destructive hover:text-destructive">
                             <LogOut className="w-4 h-4" />
