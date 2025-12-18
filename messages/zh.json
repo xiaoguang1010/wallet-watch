@@ -1,0 +1,16 @@
+{
+    "HomePage": {
+        "title": "Wallet Watch",
+        "subtitle": "安全便捷的加密资产监控。",
+        "getStarted": "开始使用"
+    },
+    "Auth": {
+        "login": "Passkey 登录",
+        "register": "Passkey 注册"
+    },
+    "Settings": {
+        "title": "设置",
+        "language": "语言",
+        "profile": "个人资料"
+    }
+}

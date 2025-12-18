@@ -1,0 +1,16 @@
+{
+  "HomePage": {
+    "title": "Wallet Watch",
+    "subtitle": "Secure passkey monitoring for your crypto assets.",
+    "getStarted": "Get Started"
+  },
+  "Auth": {
+    "login": "Login with Passkey",
+    "register": "Register with Passkey"
+  },
+  "Settings": {
+    "title": "Settings",
+    "language": "Language",
+    "profile": "Profile"
+  }
+}
