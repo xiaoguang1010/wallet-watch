@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +12,7 @@ import { Wallet, Loader2 } from "lucide-react";
 import { Link } from '@/i18n/routing';
 
 export default function RegisterPage() {
+    const t = useTranslations('Auth');
     const [username, setUsername] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const { signUp } = useAuth();
@@ -31,18 +34,18 @@ export default function RegisterPage() {
                             <Wallet className="w-8 h-8 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight">{t('createAccount')}</CardTitle>
                     <CardDescription>
-                        Enter a username to register with a Passkey
+                        {t('registerSubtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleRegister} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
+                            <Label htmlFor="username">{t('username')}</Label>
                             <Input
                                 id="username"
-                                placeholder="wallet_watcher"
+                                placeholder={t('registerPlaceholder')}
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 disabled={isLoading}
@@ -53,19 +56,19 @@ export default function RegisterPage() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating Passkey...
+                                    {t('creating')}
                                 </>
                             ) : (
-                                "Continue with Passkey"
+                                t('continueWithPasskey')
                             )}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 text-center text-sm text-muted-foreground">
                     <div>
-                        Already have an account?{" "}
+                        {t('hasAccount')}{" "}
                         <Link href="/auth/login" className="underline underline-offset-4 hover:text-primary transition-colors">
-                            Sign in
+                            {t('signInLink')}
                         </Link>
                     </div>
                 </CardFooter>

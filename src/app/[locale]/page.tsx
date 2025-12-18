@@ -1,7 +1,8 @@
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Link } from '@/i18n/routing';
-import { ArrowRight, ShieldCheck, Wallet, Lock } from 'lucide-react';
+import { ArrowRight, Wallet, LayoutDashboard, BellRing, Zap } from 'lucide-react';
 
 export default function HomePage() {
     const t = useTranslations('HomePage');
@@ -11,22 +12,17 @@ export default function HomePage() {
             {/* Header */}
             <header className="px-6 h-16 flex items-center justify-between border-b bg-background/50 backdrop-blur-xl sticky top-0 z-50">
                 <div className="flex items-center gap-2 font-bold text-xl">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-                        <Wallet className="w-5 h-5" />
+                    <div className="flex items-center justify-center">
+                        <Image src="/imKey.svg" alt="imKey Logo" width={32} height={32} className="w-8 h-8" />
                     </div>
-                    Wallet Watch
+                    imKey
                 </div>
-                <nav className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
-                    <Link href="#" className="hover:text-foreground transition-colors">Features</Link>
-                    <Link href="#" className="hover:text-foreground transition-colors">Security</Link>
-                    <Link href="#" className="hover:text-foreground transition-colors">Pricing</Link>
-                </nav>
                 <div className="flex items-center gap-4">
                     <Link href="/auth/login">
-                        <Button variant="ghost" size="sm">Login</Button>
+                        <Button variant="ghost" size="sm">{t('login')}</Button>
                     </Link>
                     <Link href="/auth/register">
-                        <Button size="sm">Get Started</Button>
+                        <Button size="sm">{t('createAccount')}</Button>
                     </Link>
                 </div>
             </header>
@@ -34,17 +30,14 @@ export default function HomePage() {
             {/* Hero Section */}
             <main className="flex-1 flex flex-col items-center justify-center text-center p-6 md:p-24 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
                 <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                    <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm text-muted-foreground gap-1">
-                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Passkey Security Enabled
-                    </div>
+
 
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-foreground to-muted-foreground pb-2">
                         {t('title')}
                     </h1>
 
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                        {t('subtitle')} Experience the future of crypto management with biometric authentication and real-time monitoring.
+                        {t('subtitle')}
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
@@ -53,9 +46,7 @@ export default function HomePage() {
                                 {t('getStarted')} <ArrowRight className="w-5 h-5" />
                             </Button>
                         </Link>
-                        <Button size="lg" variant="outline" className="h-12 px-8 text-lg">
-                            View Demo
-                        </Button>
+
                     </div>
                 </div>
 
@@ -63,19 +54,19 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 w-full max-w-6xl px-4">
                     {[
                         {
-                            icon: Lock,
-                            title: "Bank-Grade Security",
-                            desc: "Powered by WebAuthn Passkeys. Say goodbye to passwords and phishing."
+                            icon: LayoutDashboard,
+                            title: "多地址一屏总览",
+                            desc: "按需求自由分组，随时查看各组余额与总额。"
                         },
                         {
-                            icon: Wallet,
-                            title: "Multi-Wallet Watch",
-                            desc: "Track unlimited addresses across Ethereum, Polygon, and more chains."
+                            icon: BellRing,
+                            title: "余额变动提醒",
+                            desc: "大额流入、流出或异常波动，第一时间提示。"
                         },
                         {
-                            icon: ShieldCheck,
-                            title: "Privacy First",
-                            desc: "Non-custodial. Your keys never leave your device. We just verify you."
+                            icon: Zap,
+                            title: "免开发、简单易用",
+                            desc: "SaaS 即开即用，无需自建系统，无需区块链背景"
                         }
                     ].map((feature, i) => (
                         <div key={i} className="group p-6 rounded-2xl border bg-card/50 hover:bg-card/80 transition-colors backdrop-blur-sm">

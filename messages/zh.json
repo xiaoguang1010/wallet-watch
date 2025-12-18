@@ -1,12 +1,30 @@
 {
     "HomePage": {
-        "title": "Wallet Watch",
-        "subtitle": "安全便捷的加密资产监控。",
-        "getStarted": "开始使用"
+        "title": "imKey Asset Watch",
+        "subtitle": "安全便捷的加密资产监控。告别繁琐的私钥管理，即刻体验由生物识别认证与全链实时监控为您带来的未来式资产管理新范式。",
+        "getStarted": "开始使用",
+        "login": "登录",
+        "createAccount": "创建账户"
     },
     "Auth": {
         "login": "Passkey 登录",
-        "register": "Passkey 注册"
+        "register": "Passkey 注册",
+        "welcomeBack": "欢迎回来",
+        "signInSubtitle": "使用 Passkey 登录",
+        "usernameLabel": "用户名 (可选)",
+        "usernamePlaceholder": "留空即可快速访问",
+        "verifying": "验证中...",
+        "signInButton": "使用 Passkey 登录",
+        "noAccount": "还没有账户？",
+        "signUpLink": "注册",
+        "createAccount": "创建账户",
+        "registerSubtitle": "输入用户名以注册 Passkey",
+        "username": "用户名",
+        "registerPlaceholder": "请输入用户名",
+        "creating": "创建 Passkey 中...",
+        "continueWithPasskey": "使用 Passkey 继续",
+        "hasAccount": "已有账户？",
+        "signInLink": "登录"
     },
     "Settings": {
         "title": "设置",

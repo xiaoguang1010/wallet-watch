@@ -1,12 +1,30 @@
 {
   "HomePage": {
-    "title": "Wallet Watch",
-    "subtitle": "Secure passkey monitoring for your crypto assets.",
-    "getStarted": "Get Started"
+    "title": "imKey Asset Watch",
+    "subtitle": "Secure passkey monitoring for your crypto assets. Experience the future of crypto management with biometric authentication and real-time monitoring.",
+    "getStarted": "Get Started",
+    "login": "Login",
+    "createAccount": "Create Account"
   },
   "Auth": {
     "login": "Login with Passkey",
-    "register": "Register with Passkey"
+    "register": "Register with Passkey",
+    "welcomeBack": "Welcome back",
+    "signInSubtitle": "Sign in with your Passkey",
+    "usernameLabel": "Username (Optional)",
+    "usernamePlaceholder": "Leave empty for quick access",
+    "verifying": "Verifying...",
+    "signInButton": "Sign in with Passkey",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign up",
+    "createAccount": "Create an account",
+    "registerSubtitle": "Enter a username to register with a Passkey",
+    "username": "Username",
+    "registerPlaceholder": "Enter your username",
+    "creating": "Creating Passkey...",
+    "continueWithPasskey": "Continue with Passkey",
+    "hasAccount": "Already have an account?",
+    "signInLink": "Sign in"
   },
   "Settings": {
     "title": "Settings",

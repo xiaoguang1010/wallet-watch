@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +12,10 @@ import { Wallet, Loader2 } from "lucide-react";
 import { Link } from '@/i18n/routing';
 
 export default function LoginPage() {
+    const t = useTranslations('Auth');
     const [username, setUsername] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const { signIn } = useAuth();
-
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -31,18 +33,18 @@ export default function LoginPage() {
                             <Wallet className="w-8 h-8 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight">{t('welcomeBack')}</CardTitle>
                     <CardDescription>
-                        Sign in with your Passkey
+                        {t('signInSubtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username (Optional)</Label>
+                            <Label htmlFor="username">{t('usernameLabel')}</Label>
                             <Input
                                 id="username"
-                                placeholder="Leave empty for quick access"
+                                placeholder={t('usernamePlaceholder')}
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 disabled={isLoading}
@@ -53,23 +55,23 @@ export default function LoginPage() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Verifying...
+                                    {t('verifying')}
                                 </>
                             ) : (
-                                "Sign in with Passkey"
+                                t('signInButton')
                             )}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 text-center text-sm text-muted-foreground">
                     <div>
-                        Don&apos;t have an account?{" "}
+                        {t('noAccount')}{" "}
                         <Link href="/auth/register" className="underline underline-offset-4 hover:text-primary transition-colors">
-                            Sign up
+                            {t('signUpLink')}
                         </Link>
                     </div>
                 </CardFooter>
-            </Card>
-        </div>
+            </Card >
+        </div >
     );
 }
