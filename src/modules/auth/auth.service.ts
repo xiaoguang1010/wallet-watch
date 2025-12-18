@@ -104,7 +104,7 @@ export class AuthService {
                 userId: user.id,
                 credentialID: credentialID,
                 credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'), // Store as base64 string
-                counter: BigInt(counter),
+                counter: counter,
                 transports: response.response.transports?.join(",") || "",
             });
 
@@ -205,7 +205,7 @@ export class AuthService {
 
             // Update counter
             await db.update(authenticators)
-                .set({ counter: BigInt(newCounter) })
+                .set({ counter: newCounter })
                 .where(eq(authenticators.id, authenticator.id));
 
             // Clear challenge
