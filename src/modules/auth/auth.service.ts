@@ -55,7 +55,6 @@ export class AuthService {
         // 3. Save challenge to DB
         await db.update(users).set({ currentChallenge: options.challenge }).where(eq(users.id, user!.id));
 
-        console.log("[DEBUG] Generating Reg Options for RP_ID:", env.RP_ID, "Origin:", env.RP_ORIGIN);
         return Result.ok(options);
     }
 
