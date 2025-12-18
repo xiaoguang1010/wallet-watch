@@ -30,5 +30,13 @@
     "title": "Settings",
     "language": "Language",
     "profile": "Profile"
+  },
+  "Dashboard": {
+    "overview": "Overview",
+    "cases": "CASES",
+    "settings_section": "SETTINGS",
+    "my_wallets": "My Wallets",
+    "settings": "Settings",
+    "add_case": "Add Case"
   }
 }

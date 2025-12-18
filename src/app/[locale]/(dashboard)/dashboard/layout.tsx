@@ -1,4 +1,5 @@
 import { Link, redirect } from '@/i18n/routing';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,10 @@ import {
     LogOut,
     UserCircle
 } from "lucide-react";
-import { logout } from "@/modules/auth/auth.actions";
+import { logout, getCurrentUser } from "@/modules/auth/auth.actions";
+import { CaseDialog } from '@/components/cases/case-dialog';
+import { CaseSidebarItem } from '@/components/cases/case-sidebar-item';
+import { getUserCases } from '@/modules/cases/cases.actions';
 
 export default async function DashboardLayout({
     children,
@@ -27,6 +31,9 @@ export default async function DashboardLayout({
         redirect({ href: "/auth/login", locale });
     }
 
+    const t = await getTranslations('Dashboard');
+    const userCases = await getUserCases();
+
     return (
         <div className="flex min-h-screen bg-muted/20">
             {/* Sidebar */}
@@ -38,23 +45,38 @@ export default async function DashboardLayout({
                     Asset Watch
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                     <Link href="/dashboard">
                         <Button variant="ghost" className="w-full justify-start gap-2">
                             <LayoutDashboard className="w-4 h-4" />
-                            Overview
+                            {t('overview')}
                         </Button>
                     </Link>
+
+                    <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {t('cases')}
+                    </div>
+                    <CaseDialog mode="create" />
+
+                    <div className="space-y-1 mt-1">
+                        {userCases.map((c) => (
+                            <CaseSidebarItem key={c.id} caseId={c.id} name={c.name} />
+                        ))}
+                    </div>
+
+                    <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {t('settings_section')}
+                    </div>
                     <Link href="/dashboard/wallets">
                         <Button variant="ghost" className="w-full justify-start gap-2">
                             <Wallet className="w-4 h-4" />
-                            My Wallets
+                            {t('my_wallets')}
                         </Button>
                     </Link>
                     <Link href="/dashboard/settings">
                         <Button variant="ghost" className="w-full justify-start gap-2">
                             <Settings className="w-4 h-4" />
-                            Settings
+                            {t('settings')}
                         </Button>
                     </Link>
                 </nav>

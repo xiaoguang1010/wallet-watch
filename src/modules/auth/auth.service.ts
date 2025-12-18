@@ -50,6 +50,7 @@ export class AuthService {
                 userVerification: "preferred",
                 // authenticatorAttachment: "platform", // Allow both platform (TouchID) and cross-platform (YubiKey)
             },
+            timeout: 300000, // 5 minutes to avoid premature timeout during hardware interaction
         });
 
         // 3. Save challenge to DB
@@ -110,7 +111,7 @@ export class AuthService {
             // Clear challenge
             await db.update(users).set({ currentChallenge: null }).where(eq(users.id, user.id));
 
-            return Result.ok({ verified: true });
+            return Result.ok({ verified: true, userId: user.id });
         }
 
         return Result.fail("Verification failed");
@@ -142,6 +143,7 @@ export class AuthService {
                 type: "public-key",
             })),
             userVerification: "preferred",
+            timeout: 300000, // 5 minutes
         });
 
         // We need to store the challenge somewhere. 

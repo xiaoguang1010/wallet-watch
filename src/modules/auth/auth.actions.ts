@@ -19,9 +19,9 @@ export async function registerStart(username: string) {
 export async function registerVerify(userId: string, response: any) {
     try {
         const result = await authService.verifyRegistration(userId, response);
-        if (result.success) {
+        if (result.success && result.data?.userId) {
             // Create session cookie
-            (await cookies()).set("session_user_id", userId, { httpOnly: true, secure: true, path: "/" });
+            (await cookies()).set("session_user_id", result.data.userId, { httpOnly: true, secure: true, path: "/" });
         }
         return result;
     } catch (err: any) {
@@ -62,4 +62,18 @@ export async function loginVerify(response: any) {
 
 export async function logout() {
     (await cookies()).delete("session_user_id");
+}
+
+export async function getCurrentUser() {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("session_user_id")?.value;
+
+    if (!userId) return null;
+
+    // TODO: Ideally fetch full user from DB, for now returning minimal info or fetching via service
+    // For cases.actions.ts we just need the ID mostly, but let's fetch basic info
+    // However, to avoid circular deps if auth service uses db, let's keep it simple here.
+    // If we need real user object, we should import db here.
+
+    return { id: userId };
 }

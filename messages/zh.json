@@ -30,5 +30,13 @@
         "title": "设置",
         "language": "语言",
         "profile": "个人资料"
+    },
+    "Dashboard": {
+        "overview": "概览",
+        "cases": "案件",
+        "settings_section": "设置",
+        "my_wallets": "我的钱包",
+        "settings": "系统设置",
+        "add_case": "添加案件"
     }
 }
