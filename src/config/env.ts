@@ -7,9 +7,9 @@ const envSchema = z.object({
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().default("https://wallet-watch-dusky.vercel.app"),
   // Passkey (RP Info)
-  RP_ID: z.string().default("wallet-watch-dusky.vercel.app"),
+  RP_ID: z.string(), // Must be provided in env
   RP_NAME: z.string().default("Wallet Watch"),
-  RP_ORIGIN: z.string().url().default("https://wallet-watch-dusky.vercel.app"),
+  RP_ORIGIN: z.string().url(), // Must be provided
   // Auth
   SESSION_SECRET: z.string().min(32).default("super-secret-session-key-change-me"),
 });
