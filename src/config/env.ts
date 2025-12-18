@@ -1,15 +1,15 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
   DATABASE_URL: z.string().url(),
   PORT: z.string().default("3000"),
   // App
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: z.string().url().default("https://wallet-watch-dusky.vercel.app"),
   // Passkey (RP Info)
-  RP_ID: z.string().default("localhost"),
+  RP_ID: z.string().default("wallet-watch-dusky.vercel.app"),
   RP_NAME: z.string().default("Wallet Watch"),
-  RP_ORIGIN: z.string().url().default("http://localhost:3000"),
+  RP_ORIGIN: z.string().url().default("https://wallet-watch-dusky.vercel.app"),
   // Auth
   SESSION_SECRET: z.string().min(32).default("super-secret-session-key-change-me"),
 });
