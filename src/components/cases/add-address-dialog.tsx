@@ -30,38 +30,63 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { updateCaseAction } from '@/modules/cases/cases.actions';
-import { toast } from 'sonner';
 import { z } from 'zod';
+import { toast } from 'sonner';
 
-const addressSchema = z.object({
+const addAddressSchema = z.object({
     addresses: z.array(z.object({
         address: z.string().min(1, "Address is required"),
         chain: z.enum(["BTC", "ETH", "TRON"]),
         network: z.enum(["L1", "L2"]).optional(),
-    })).min(1, "At least one address is required"),
+    })).min(1, "At least one address is required")
+        .refine((items) => {
+            const seen = new Set();
+            for (const item of items) {
+                const key = `${item.address}-${item.chain}-${item.network || 'L1'}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+            }
+            return true;
+        }, { message: "Duplicate address entry" })
+        .superRefine((items, ctx) => {
+            items.forEach((item, index) => {
+                let isValid = true;
+                if (item.chain === 'ETH') {
+                    isValid = /^0x[a-fA-F0-9]{40}$/.test(item.address);
+                } else if (item.chain === 'TRON') {
+                    isValid = /^T[a-zA-HJ-NP-Z0-9]{33}$/.test(item.address);
+                } else if (item.chain === 'BTC') {
+                    isValid = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/.test(item.address);
+                }
+
+                if (!isValid) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `Invalid ${item.chain} address format`,
+                        path: [index, 'address']
+                    });
+                }
+            });
+        }),
 });
 
-type AddressFormData = z.infer<typeof addressSchema>;
+type AddAddressInput = z.infer<typeof addAddressSchema>;
 
 interface AddAddressDialogProps {
     folderId: string;
     folderName: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    existingAddresses?: Array<{ address: string; chain: string; network?: string }>;
 }
 
-export function AddAddressDialog({ folderId, folderName, open, onOpenChange, existingAddresses = [] }: AddAddressDialogProps) {
+export function AddAddressDialog({ folderId, folderName, open, onOpenChange }: AddAddressDialogProps) {
     const t = useTranslations('Dashboard');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const form = useForm<AddressFormData>({
-        resolver: zodResolver(addressSchema),
+    const form = useForm<AddAddressInput>({
+        resolver: zodResolver(addAddressSchema),
         defaultValues: {
-            addresses: existingAddresses.length > 0 
-                ? existingAddresses 
-                : [{ address: '', chain: 'ETH', network: 'L1' }],
+            addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
         },
     });
 
@@ -70,22 +95,25 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange, exi
         name: "addresses",
     });
 
-    async function onSubmit(data: AddressFormData) {
+    async function onSubmit(data: AddAddressInput) {
         setIsSubmitting(true);
         try {
-            const result = await updateCaseAction(folderId, {
-                name: folderName,
-                addresses: data.addresses,
+            // TODO: Call API to add addresses to existing folder
+            const response = await fetch(`/api/cases/${folderId}/addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
             });
 
-            if (result.error) {
-                toast.error(typeof result.error === 'string' ? result.error : "Validation failed");
-            } else {
+            if (response.ok) {
                 toast.success("地址添加成功");
                 onOpenChange(false);
+                form.reset();
+            } else {
+                toast.error("添加失败");
             }
         } catch (error) {
-            toast.error("添加地址失败");
+            toast.error("添加失败");
         } finally {
             setIsSubmitting(false);
         }
@@ -95,9 +123,9 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange, exi
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>为「{folderName}」添加监控地址</DialogTitle>
+                    <DialogTitle>添加监控地址</DialogTitle>
                     <DialogDescription>
-                        添加需要监控的区块链地址到此分组。
+                        为「{folderName}」添加加密资产监控地址
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -195,7 +223,7 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange, exi
                             </Button>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                保存地址
+                                添加地址
                             </Button>
                         </DialogFooter>
                     </form>

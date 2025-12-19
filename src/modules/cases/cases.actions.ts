@@ -63,8 +63,8 @@ export async function createCaseAction(input: CreateCaseInput) {
                 status: 'active',
             });
 
-            // 2. Insert Addresses
-            if (addresses.length > 0) {
+            // 2. Insert Addresses (optional)
+            if (addresses && addresses.length > 0) {
                 await tx.insert(monitoredAddresses).values(
                     addresses.map(addr => ({
                         id: uuidv4(),

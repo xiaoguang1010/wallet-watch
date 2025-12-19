@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { LayoutClient } from './layout-client';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
@@ -14,7 +14,7 @@ interface LayoutWrapperProps {
 export function LayoutWrapper({ folders, addGroupText }: LayoutWrapperProps) {
     const [showCreateRoot, setShowCreateRoot] = useState(false);
 
-    const handleClickAddGroup = () => {
+    const handleAddGroup = () => {
         setShowCreateRoot(true);
     };
 
@@ -26,8 +26,9 @@ export function LayoutWrapper({ folders, addGroupText }: LayoutWrapperProps) {
         <>
             <Button 
                 variant="ghost" 
-                className="w-full justify-start gap-2"
-                onClick={handleClickAddGroup}
+                className="w-full justify-start gap-2" 
+                suppressHydrationWarning
+                onClick={handleAddGroup}
                 disabled={showCreateRoot}
             >
                 <Plus className="w-4 h-4" />
