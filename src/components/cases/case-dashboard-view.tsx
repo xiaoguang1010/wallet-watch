@@ -269,63 +269,170 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
+            <div className="flex items-center justify-between">
+                <div>
                         <h1 className="text-3xl font-bold text-gray-900">{data.name}</h1>
                         <p className="text-sm text-gray-500 mt-1">{data.description}</p>
-                    </div>
+                </div>
                     {!isAllCasesView && (
-                        <div className="flex items-center gap-2">
-                            <CaseDialog
-                                mode="edit"
-                                initialData={editData}
-                                open={isEditOpen}
-                                onOpenChange={setIsEditOpen}
+                <div className="flex items-center gap-2">
+                    <CaseDialog
+                        mode="edit"
+                        initialData={editData}
+                        open={isEditOpen}
+                        onOpenChange={setIsEditOpen}
                                 onSuccess={() => {
                                     // 保存成功后立即刷新余额
                                     fetchBalances(true);
                                     // 刷新页面数据
                                     router.refresh();
                                 }}
-                                trigger={
-                                    <Button variant="outline" size="sm" suppressHydrationWarning>
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        {t('edit_group')}
-                                    </Button>
-                                }
-                            />
-
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleDelete}
-                                disabled={isDeleting}
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {t('delete')}
+                        trigger={
+                            <Button variant="outline" size="sm" suppressHydrationWarning>
+                                <Edit className="w-4 h-4 mr-2" />
+                                {t('edit_group')}
                             </Button>
-                        </div>
+                        }
+                    />
+
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('delete')}
+                    </Button>
+                </div>
                     )}
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <div className="text-4xl font-bold text-gray-900">{data.stats.addressCount}</div>
-                        <div className="text-sm text-gray-500 mt-2">{t('total_address')}</div>
-                    </div>
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                {/* Stats and Chart Section */}
+                <div className="grid grid-cols-12 gap-6">
+                    {/* Left Side: Stats Cards (2x2 grid) */}
+                    <div className="col-span-6">
+                        <div className="grid grid-cols-2 gap-4 h-full">
+                            {/* 左上: 资产组 */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-8 flex flex-col justify-center">
+                                <div className="text-5xl font-bold text-gray-900 mb-6">
+                                    {isAllCasesView ? data.stats.caseCount : '1'}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                    {isAllCasesView ? '资产组' : '资产组'}
+                                </div>
+                            </div>
+
+                            {/* 右上: 钱包地址数 */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-8 flex flex-col justify-center">
+                                <div className="text-5xl font-bold text-gray-900 mb-6">
+                                    {data.stats.addressCount}
+                                </div>
+                                <div className="text-sm text-gray-500">钱包地址数</div>
+            </div>
+
+                            {/* 左下: 管理资产总额 */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-8 flex flex-col justify-center">
+                                {loadingBalances ? (
+                                    <div className="flex items-center gap-2 mb-6">
+                                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                        <div className="text-3xl font-bold text-gray-900">...</div>
+                                    </div>
+                                ) : (
+                                    <div className="text-3xl font-bold text-gray-900 mb-6">
+                                        $ {totalAssets.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                )}
+                                <div className="text-sm text-gray-500">管理资产总额（按当前币价折算）</div>
+                            </div>
+
+                            {/* 右下: 近7日余额净变动 */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-8 flex flex-col justify-center">
+                                <div className="text-3xl font-bold text-green-600 mb-6">+ $ 245,320</div>
+                                <div className="text-sm text-gray-500">近7日余额净变动</div>
+                            </div>
+                        </div>
+            </div>
+
+                    {/* Right Side: Asset Distribution Chart */}
+                    <div className="col-span-6 bg-white rounded-lg border border-gray-200 p-6 h-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-base font-medium text-gray-900">资产组成</h3>
+                                <p className="text-xs text-gray-500">（按当前币价折算，计算占比）</p>
+                            </div>
+                            <button className="text-sm text-blue-600 hover:text-blue-700">更多 »</button>
+                        </div>
                         {loadingBalances ? (
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                                <div className="text-3xl font-bold text-gray-900">Loading...</div>
+                            <div className="flex items-center justify-center" style={{ minHeight: '400px' }}>
+                                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            </div>
+                        ) : assetDistribution.length > 0 ? (
+                            <div className="flex items-center justify-center gap-12 h-full">
+                                {/* Pie Chart */}
+                                <div className="relative" style={{ width: '380px', height: '380px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                                data={assetDistribution}
+                                    cx="50%"
+                                    cy="50%"
+                                                innerRadius={0}
+                                                outerRadius={160}
+                                    dataKey="value"
+                                                stroke="none"
+                                            >
+                                                {assetDistribution.map((entry: any, index: number) => {
+                                                    const colors = ['#1e3a8a', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'];
+                                                    return (
+                                                        <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                                                    );
+                                                })}
+                                </Pie>
+                                            <Tooltip
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        return (
+                                                            <div className="bg-white shadow-lg rounded-lg p-3 border">
+                                                                <p className="text-sm text-gray-600">{payload[0].name}</p>
+                                                                <p className="text-sm">
+                                                                    <span
+                                                                        className="inline-block w-2 h-2 rounded-full mr-2"
+                                                                        style={{ backgroundColor: payload[0].payload.fill }}
+                                                                    ></span>
+                                                                    资产总额占比 {payload[0].value}%
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                            </PieChart>
+                        </ResponsiveContainer>
+                                </div>
+
+                                {/* Legend - 右侧 */}
+                                <div className="flex flex-col gap-6">
+                                    {assetDistribution.map((entry: any, index: number) => {
+                                        const colors = ['#1e3a8a', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'];
+                                        return (
+                                            <div key={entry.name} className="flex items-center gap-3">
+                                                <span
+                                                    className="w-4 h-4 rounded-full"
+                                                    style={{ backgroundColor: colors[index % colors.length] }}
+                                                ></span>
+                                                <span className="text-base text-gray-700">{entry.name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ) : (
-                            <div className="text-3xl font-bold text-gray-900">
-                                $ {totalAssets.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="flex items-center justify-center text-sm text-gray-500" style={{ minHeight: '400px' }}>
+                                暂无资产数据
                             </div>
                         )}
-                        <div className="text-sm text-gray-500 mt-2">{t('total_assets')}</div>
                     </div>
                 </div>
 
@@ -336,174 +443,76 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
                 )}
 
-                <div className="grid grid-cols-12 gap-6">
-                    {/* Asset Distribution Chart */}
-                    <div className={`${isAllCasesView ? 'col-span-12' : 'col-span-7'} bg-white rounded-lg border border-gray-200 p-6`}>
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-base font-medium text-gray-900">{t('asset_dist')}</h3>
-                                <p className="text-xs text-gray-500">（按当前币价折算，计算占比）</p>
-                            </div>
-                        </div>
-                        {loadingBalances ? (
-                            <div className="flex items-center justify-center h-48">
-                                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                            </div>
-                        ) : assetDistribution.length > 0 ? (
-                            <div className="flex items-center">
-                                <div className="w-48 h-48 relative">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={assetDistribution}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={50}
-                                                outerRadius={80}
-                                                dataKey="value"
-                                                stroke="none"
-                                            >
-                                                {assetDistribution.map((entry: any, index: number) => {
-                                                    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444'];
-                                                    return (
-                                                        <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                                                    );
-                                                })}
-                                            </Pie>
-                                            <Tooltip
-                                                content={({ active, payload }) => {
-                                                    if (active && payload && payload.length) {
-                                                        return (
-                                                            <div className="bg-white shadow-lg rounded-lg p-3 border">
-                                                                <p className="text-sm text-gray-600">{payload[0].name}</p>
-                                                                <p className="text-sm">
-                                                                    <span
-                                                                        className="inline-block w-2 h-2 rounded-full mr-2"
-                                                                        style={{ backgroundColor: payload[0].payload.color || '#10B981' }}
-                                                                    ></span>
-                                                                    资产总额占比 {payload[0].value}%
-                                                                </p>
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                {/* Legend */}
-                                <div className="ml-8 space-y-3">
-                                    {assetDistribution.map((entry: any, index: number) => {
-                                        const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444'];
-                                        return (
-                                            <div key={entry.name} className="flex items-center gap-2">
-                                                <span
-                                                    className="w-2 h-2 rounded-full"
-                                                    style={{ backgroundColor: colors[index % colors.length] }}
-                                                ></span>
-                                                <span className="text-sm text-gray-700">{entry.name}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-48 text-sm text-gray-500">
-                                暂无资产数据
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Address List */}
-                    {!isAllCasesView && (
-                        <div className="col-span-5 bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-base font-medium text-gray-900 mb-4">{t('addr_list')}</h3>
-                        {loadingBalances ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {data.addresses.map((addr: any) => {
-                                    const balance = addressBalances.get(addr.id);
-                                    return (
-                                        <div key={addr.id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-sm font-medium text-gray-900">{addr.chain}</span>
-                                                <span className="text-xs text-gray-500">{addr.network}</span>
-                                            </div>
-                                            <div className="text-xs font-mono text-gray-600 truncate mb-2">{addr.address}</div>
-                                            
-                                            {/* Balance Info */}
-                                            {balance ? (
-                                                <div className="mt-2 space-y-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-500">Total Value</span>
-                                                        <span className="text-sm font-semibold text-gray-900">
-                                                            ${balance.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                        </span>
-                                                    </div>
-                                                    {balance.tokens.length > 0 && (
-                                                        <div className="mt-2 pt-2 border-t border-gray-100">
-                                                            <div className="text-xs text-gray-500 mb-2">Tokens:</div>
-                                                            <div className="space-y-1">
-                                                                {balance.tokens.map((token, index) => {
-                                                                    // 检查是否支持交易查询（支持ETH和BTC）
-                                                                    const chainUpper = addr.chain?.toUpperCase();
-                                                                    const supportsTransactions = chainUpper === 'ETH' || chainUpper === 'BTC';
-                                                                    
-                                                                    return supportsTransactions ? (
-                                                                        <button
-                                                                            key={`${token.symbol}-${index}`}
-                                                                            onClick={() => handleTokenClick(addr.id, addr.address, addr.chain, token)}
-                                                                            className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors cursor-pointer group"
-                                                                        >
-                                                                            <span className="flex items-center gap-2 font-medium text-gray-700 group-hover:text-gray-900">
-                                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                                                {token.symbol}
-                                                                            </span>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-gray-600 group-hover:text-gray-900">
-                                                                                    ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                                </span>
-                                                                                <svg className="w-3 h-3 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                                </svg>
-                                                                            </div>
-                                                                        </button>
-                                                                    ) : (
-                                                                        <div
-                                                                            key={`${token.symbol}-${index}`}
-                                                                            className="w-full flex items-center justify-between px-2 py-1.5 text-xs"
-                                                                            title={`${addr.chain} 交易查询功能即将支持`}
-                                                                        >
-                                                                            <span className="flex items-center gap-2 font-medium text-gray-700">
-                                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                                                                                {token.symbol}
-                                                                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">即将支持</span>
-                                                                            </span>
-                                                                            <span className="text-gray-600">
-                                                                                ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                            </span>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="mt-2 text-xs text-gray-400">No balance data</div>
-                                            )}
+                {/* Address List - 卡片式展示 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {data.addresses.map((addr: any) => {
+                        const balance = addressBalances.get(addr.id);
+                        const mainToken = balance?.tokens[0]; // 获取主要代币
+                        
+                        return (
+                            <div key={addr.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                                {/* Header: 钱包名称 */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                            <span className="text-sm font-medium text-gray-600">{addr.chain.charAt(0)}</span>
                                         </div>
-                                    );
-                                })}
+                                        <span className="text-sm font-medium text-gray-900">{data.name}</span>
+                                    </div>
+                                    <span className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded">Owner</span>
+                                </div>
+
+                                {/* Address */}
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs text-gray-500">{addr.chain}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-mono text-gray-600 truncate flex-1">{addr.address}</span>
+                                        <button 
+                                            onClick={() => navigator.clipboard.writeText(addr.address)}
+                                            className="p-1 hover:bg-gray-100 rounded"
+                                            title="复制地址"
+                                        >
+                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Balance Display */}
+                                {loadingBalances ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                    </div>
+                                ) : balance && mainToken ? (
+                                    <div className="border-t border-gray-100 pt-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                                    <span className="text-white text-sm font-medium">{mainToken.symbol.charAt(0)}</span>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">{mainToken.symbol}</div>
+                                                    <div className="text-xs text-gray-500">{mainToken.formattedBalance}</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-lg font-bold text-gray-900">
+                                                    $ {mainToken.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border-t border-gray-100 pt-4">
+                                        <div className="text-sm text-gray-400 text-center py-4">暂无余额数据</div>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    )}
+                        );
+                    })}
                 </div>
 
                 {/* Transaction History Section */}

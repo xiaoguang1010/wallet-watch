@@ -116,6 +116,7 @@ export async function getAllCasesAddresses() {
             description: '所有分组的钱包地址汇总',
             addresses: [],
             stats: {
+                caseCount: 0,
                 totalAssets: 0,
                 addressCount: 0,
                 assetDistribution: []
@@ -176,6 +177,7 @@ export async function getAllCasesAddresses() {
         description: '所有分组的钱包地址汇总',
         addresses: allAddresses,
         stats: {
+            caseCount: allCases.length,
             totalAssets,
             addressCount: allAddresses.length,
             assetDistribution: assetDist
