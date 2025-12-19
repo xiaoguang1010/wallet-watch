@@ -112,20 +112,8 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
             } else {
                 toast.success("分组已删除");
                 
-                // Check if we need to navigate away from the current page
-                // Navigate if: 1) viewing the deleted folder, or 2) viewing a descendant of the deleted folder
-                const isViewingDeletedTree = currentCaseId && (
-                    currentCaseId === folderId || 
-                    isDescendantOf(folders, currentCaseId, folderId)
-                );
-                
-                if (isViewingDeletedTree) {
-                    // Navigate to dashboard (away from deleted folder)
-                    router.push(`/${locale}/dashboard`);
-                } else {
-                    // Just refresh to update the sidebar and content
-                    router.refresh();
-                }
+                // 删除后统一跳转到概览页，避免404错误
+                router.push(`/${locale}/dashboard`);
             }
         } catch (error) {
             toast.error("删除失败");
