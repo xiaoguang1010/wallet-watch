@@ -45,8 +45,8 @@ export const alertRules = mysqlTable("alert_rules", {
     // 资产清空: { threshold: 0.01 } // 余额低于此值视为清空
     config: text("config").notNull(),
     
-    // 是否启用 (0 = false, 1 = true)
-    enabled: int("enabled").default(1).notNull(),
+    // 是否启用
+    enabled: int("enabled", { mode: 'boolean' }).default(true).notNull(),
     
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
     updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
@@ -78,8 +78,8 @@ export const alerts = mysqlTable("alerts", {
     // 严重程度: 'info' | 'warning' | 'error'
     severity: varchar("severity", { length: 20 }).default('warning').notNull(),
     
-    // 是否已读 (0 = false, 1 = true)
-    isRead: int("is_read").default(0).notNull(),
+    // 是否已读
+    isRead: int("is_read", { mode: 'boolean' }).default(false).notNull(),
     
     // 触发时间
     triggeredAt: timestamp("triggered_at").default(sql`CURRENT_TIMESTAMP`).notNull(),

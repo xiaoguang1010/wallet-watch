@@ -43,7 +43,7 @@ export async function getUnreadAlertCount(caseId: string) {
         const unreadAlerts = await db.query.alerts.findMany({
             where: and(
                 eq(alerts.caseId, caseId),
-                eq(alerts.isRead, 0)
+                eq(alerts.isRead, false)
             ),
         });
 
@@ -65,7 +65,7 @@ export async function markAlertAsRead(alertId: string) {
 
     try {
         await db.update(alerts)
-            .set({ isRead: 1 })
+            .set({ isRead: true })
             .where(eq(alerts.id, alertId));
 
         revalidatePath('/dashboard');
@@ -87,7 +87,7 @@ export async function markAllAlertsAsRead(caseId: string) {
 
     try {
         await db.update(alerts)
-            .set({ isRead: 1 })
+            .set({ isRead: true })
             .where(eq(alerts.caseId, caseId));
 
         revalidatePath('/dashboard');
@@ -119,7 +119,7 @@ export async function createAlertRule(input: CreateAlertRuleInput) {
             ruleType: input.ruleType,
             name: input.name,
             config: JSON.stringify(input.config),
-            enabled: (input.enabled ?? true) ? 1 : 0,
+            enabled: input.enabled ?? true,
         });
 
         revalidatePath('/dashboard');

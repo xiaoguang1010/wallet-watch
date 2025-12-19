@@ -31,16 +31,16 @@ export function AlertsList({ caseId }: AlertsListProps) {
     useEffect(() => {
         async function fetchAlerts() {
             setLoading(true);
-        const alertsData = await getCaseAlerts(caseId);
-        // 确保类型正确
-        const typedAlerts: Alert[] = (alertsData || []).map((alert: any) => ({
-            ...alert,
-            severity: (alert.severity === 'error' || alert.severity === 'warning' || alert.severity === 'info') 
-                ? alert.severity 
-                : 'warning' as 'info' | 'warning' | 'error',
-            isRead: Boolean(alert.isRead),
-        }));
-        setAlerts(typedAlerts);
+            const alertsData = await getCaseAlerts(caseId);
+            // 确保类型正确
+            const typedAlerts: Alert[] = (alertsData || []).map((alert: any) => ({
+                ...alert,
+                severity: (alert.severity === 'error' || alert.severity === 'warning' || alert.severity === 'info') 
+                    ? alert.severity 
+                    : 'warning' as 'info' | 'warning' | 'error',
+                isRead: Boolean(alert.isRead),
+            }));
+            setAlerts(typedAlerts);
             setLoading(false);
         }
 
@@ -170,7 +170,7 @@ export function AlertsList({ caseId }: AlertsListProps) {
                                 </div>
                             </div>
                         </div>
-                                {!Boolean(alert.isRead) && (
+                        {!Boolean(alert.isRead) && (
                             <Button
                                 variant="ghost"
                                 size="sm"

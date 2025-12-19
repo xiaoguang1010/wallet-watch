@@ -250,7 +250,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
     const isAllCasesView = data.id === 'all-cases';
 
     return (
-        <div className="bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-6">
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -305,9 +305,9 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                 <div className="text-3xl font-bold text-gray-900">Loading...</div>
                             </div>
                         ) : (
-                        <div className="text-3xl font-bold text-gray-900">
+                            <div className="text-3xl font-bold text-gray-900">
                                 $ {totalAssets.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                            </div>
                         )}
                         <div className="text-sm text-gray-500 mt-2">{t('total_assets')}</div>
                     </div>
@@ -320,8 +320,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
                 )}
 
-                <div className={`grid grid-cols-12 gap-6`}>
-                {/* Asset Distribution Chart */}
+                <div className="grid grid-cols-12 gap-6">
+                    {/* Asset Distribution Chart */}
                     <div className={`${isAllCasesView ? 'col-span-12' : 'col-span-7'} bg-white rounded-lg border border-gray-200 p-6`}>
                         <div className="flex items-center justify-between mb-4">
                             <div>
@@ -336,24 +336,24 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         ) : assetDistribution.length > 0 ? (
                             <div className="flex items-center">
                                 <div className="w-48 h-48 relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
                                                 data={assetDistribution}
-                                    cx="50%"
-                                    cy="50%"
+                                                cx="50%"
+                                                cy="50%"
                                                 innerRadius={50}
-                                    outerRadius={80}
-                                    dataKey="value"
+                                                outerRadius={80}
+                                                dataKey="value"
                                                 stroke="none"
-                                >
+                                            >
                                                 {assetDistribution.map((entry: any, index: number) => {
                                                     const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444'];
                                                     return (
                                                         <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                                                     );
                                                 })}
-                                </Pie>
+                                            </Pie>
                                             <Tooltip
                                                 content={({ active, payload }) => {
                                                     if (active && payload && payload.length) {
@@ -373,8 +373,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                                     return null;
                                                 }}
                                             />
-                            </PieChart>
-                        </ResponsiveContainer>
+                                        </PieChart>
+                                    </ResponsiveContainer>
                                 </div>
 
                                 {/* Legend */}
@@ -400,7 +400,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         )}
                     </div>
 
-                {/* Address List */}
+                    {/* Address List */}
                     {!isAllCasesView && (
                         <div className="col-span-5 bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-base font-medium text-gray-900 mb-4">{t('addr_list')}</h3>
@@ -440,7 +440,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                                                             ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                         </span>
                                                                     </div>
-                                ))}
+                                                                ))}
                                                             </div>
                                                         </div>
                                                     )}
