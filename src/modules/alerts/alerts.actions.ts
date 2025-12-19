@@ -78,7 +78,7 @@ export async function getUnreadAlertCount(caseId: string) {
         const unreadAlerts = await db.query.alerts.findMany({
             where: and(
                 inArray(alerts.caseId, caseIds),
-                eq(alerts.isRead, false)
+                eq(alerts.isRead, 0) // 0 = false
             ),
         });
 
@@ -100,7 +100,7 @@ export async function markAlertAsRead(alertId: string) {
 
     try {
         await db.update(alerts)
-            .set({ isRead: true })
+            .set({ isRead: 1 }) // 1 = true
             .where(eq(alerts.id, alertId));
 
         revalidatePath('/dashboard');
@@ -123,7 +123,7 @@ export async function markAllAlertsAsRead(caseId: string) {
     try {
         const caseIds = await getCaseAndDescendantCaseIds(caseId, userResult.data.id);
         await db.update(alerts)
-            .set({ isRead: true })
+            .set({ isRead: 1 }) // 1 = true
             .where(inArray(alerts.caseId, caseIds));
 
         revalidatePath('/dashboard');
@@ -155,7 +155,7 @@ export async function createAlertRule(input: CreateAlertRuleInput) {
             ruleType: input.ruleType,
             name: input.name,
             config: JSON.stringify(input.config),
-            enabled: input.enabled ?? true,
+            enabled: (input.enabled ?? true) ? 1 : 0,
         });
 
         revalidatePath('/dashboard');
@@ -202,7 +202,7 @@ export async function updateAlertRule(ruleId: string, input: Partial<CreateAlert
         const updateData: any = {};
         if (input.name) updateData.name = input.name;
         if (input.config) updateData.config = JSON.stringify(input.config);
-        if (input.enabled !== undefined) updateData.enabled = input.enabled;
+        if (input.enabled !== undefined) updateData.enabled = input.enabled ? 1 : 0;
 
         await db.update(alertRules)
             .set(updateData)
