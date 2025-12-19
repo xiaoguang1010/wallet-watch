@@ -1,18 +1,7 @@
 /**
  * 资产组合服务 - 处理多链资产汇总
+ * BigNumber 类现在从上层传入，避免 Vercel 模块解析问题
  */
-
-// 在 Vercel/Next.js 环境中，需要从项目根目录加载 bignumber.js
-let BigNumber;
-try {
-  // 首先尝试正常的 require
-  BigNumber = require('bignumber.js');
-} catch (e) {
-  // 如果失败，尝试从项目根目录的 node_modules 加载
-  const path = require('path');
-  const bignumberPath = path.join(process.cwd(), 'node_modules', 'bignumber.js');
-  BigNumber = require(bignumberPath);
-}
 
 const { getChainBalance } = require('./balance');
 const btcAPI = require('../api/btc');
@@ -21,8 +10,10 @@ const tronAPI = require('../api/tron');
 
 /**
  * 计算总价值
+ * @param {Array} assetTokens 资产代币列表
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-function calcTotal(assetTokens) {
+function calcTotal(assetTokens, BigNumber) {
   let totalValue = new BigNumber(0);
   
   assetTokens.forEach((asset) => {
@@ -69,8 +60,11 @@ async function getMultiChainPortfolio(addresses) {
 
 /**
  * 查询单个链的资产
+ * @param {string} address 钱包地址
+ * @param {string} chainType 链类型
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-async function getSingleChainPortfolio(address, chainType) {
+async function getSingleChainPortfolio(address, chainType, BigNumber) {
   let getTokenListFn, caip2, chainName;
   
   switch (chainType.toUpperCase()) {
@@ -96,7 +90,7 @@ async function getSingleChainPortfolio(address, chainType) {
       throw new Error(`Unsupported chain type: ${chainType}`);
   }
 
-  return await getChainBalance(address, chainName, caip2, getTokenListFn);
+  return await getChainBalance(address, chainName, caip2, getTokenListFn, BigNumber);
 }
 
 module.exports = {

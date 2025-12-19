@@ -1,25 +1,15 @@
 /**
  * 余额服务 - 处理余额查询和格式化
+ * BigNumber 类现在从上层传入，避免 Vercel 模块解析问题
  */
-
-// 在 Vercel/Next.js 环境中，需要从项目根目录加载 bignumber.js
-let BigNumber;
-try {
-  // 首先尝试正常的 require
-  BigNumber = require('bignumber.js');
-} catch (e) {
-  // 如果失败，尝试从项目根目录的 node_modules 加载
-  const path = require('path');
-  const bignumberPath = path.join(process.cwd(), 'node_modules', 'bignumber.js');
-  BigNumber = require(bignumberPath);
-}
 
 const { getPrices } = require('../api/prices');
 
 /**
  * 格式化余额
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-function formatBalance(balance, decimals) {
+function formatBalance(balance, decimals, BigNumber) {
   if (!balance || balance === '0') {
     return '0';
   }
@@ -32,8 +22,9 @@ function formatBalance(balance, decimals) {
 
 /**
  * 从原始单位转换为可读单位
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-function fromDecimalToUnit(balance, decimal) {
+function fromDecimalToUnit(balance, decimal, BigNumber) {
   const balanceBN = new BigNumber(balance);
   const divisor = new BigNumber(10).pow(decimal);
   return balanceBN.div(divisor);
@@ -41,8 +32,9 @@ function fromDecimalToUnit(balance, decimal) {
 
 /**
  * 格式化数值
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-function formatWithMiniValue(value, miniValue = '0.01', decimals = 2) {
+function formatWithMiniValue(value, miniValue = '0.01', decimals = 2, BigNumber) {
   const valueBN = new BigNumber(value);
   const miniBN = new BigNumber(miniValue);
   
@@ -55,21 +47,23 @@ function formatWithMiniValue(value, miniValue = '0.01', decimals = 2) {
 
 /**
  * 计算代币的USD价值
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-function calculateTokenUSDValue(balance, price, decimal) {
+function calculateTokenUSDValue(balance, price, decimal, BigNumber) {
   if (!balance || balance === '0' || !price) {
     return null;
   }
   
-  const amount = fromDecimalToUnit(balance, decimal);
+  const amount = fromDecimalToUnit(balance, decimal, BigNumber);
   const value = amount.multipliedBy(price);
-  return formatWithMiniValue(value.toString(), '0.01', 2);
+  return formatWithMiniValue(value.toString(), '0.01', 2, BigNumber);
 }
 
 /**
  * 查询单个链的余额（带价格）
+ * @param {Object} BigNumber BigNumber 类，从上层传入
  */
-async function getChainBalance(address, chainName, caip2, getTokenListFn) {
+async function getChainBalance(address, chainName, caip2, getTokenListFn, BigNumber) {
   try {
     // 1. 获取代币列表
     const tokens = await getTokenListFn(address);
@@ -104,8 +98,8 @@ async function getChainBalance(address, chainName, caip2, getTokenListFn) {
       const balance = token.balance || '0';
       const decimals = token.decimals || token.decimal || (chainName === 'TRON' ? 6 : chainName === 'BITCOIN' ? 8 : 18);
       const price = priceData.price || 0;
-      const formattedBalance = formatBalance(balance, decimals);
-      const usdValue = calculateTokenUSDValue(balance, price, decimals);
+      const formattedBalance = formatBalance(balance, decimals, BigNumber);
+      const usdValue = calculateTokenUSDValue(balance, price, decimals, BigNumber);
       
       return {
         symbol: token.symbol || token.displaySymbol || 'UNKNOWN',
@@ -138,7 +132,7 @@ async function getChainBalance(address, chainName, caip2, getTokenListFn) {
       tokens: tokensWithBalance,
       allTokens: tokensWithPrice,
       totalValue: totalValue,
-      totalValueFormatted: formatWithMiniValue(totalValue.toString(), '0.01', 2),
+      totalValueFormatted: formatWithMiniValue(totalValue.toString(), '0.01', 2, BigNumber),
     };
   } catch (error) {
     console.error(`查询 ${chainName} 链失败:`, error.message);

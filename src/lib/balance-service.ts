@@ -93,13 +93,14 @@ export async function getGroup1Balances() {
  * 查询单个链的余额
  * @param address 钱包地址
  * @param chainType 链类型: 'BTC' | 'ETH' | 'TRON'
+ * @param BigNumber BigNumber 类从 API route 传入，避免 Vercel 模块解析问题
  */
-export async function getSingleChainBalance(address: string, chainType: 'BTC' | 'ETH' | 'TRON') {
+export async function getSingleChainBalance(address: string, chainType: 'BTC' | 'ETH' | 'TRON', BigNumber: any) {
   try {
     const portfolio = getPortfolioService();
     const getSingleChainPortfolio = portfolio.getSingleChainPortfolio;
 
-    const result = await getSingleChainPortfolio(address, chainType);
+    const result = await getSingleChainPortfolio(address, chainType, BigNumber);
 
     return {
       success: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSingleChainBalance } from '@/lib/balance-service';
+import BigNumber from 'bignumber.js';
 
 export async function GET(
   request: NextRequest,
@@ -21,7 +22,7 @@ export async function GET(
       );
     }
 
-    const result = await getSingleChainBalance(address, 'BTC');
+    const result = await getSingleChainBalance(address, 'BTC', BigNumber);
     
     const duration = Date.now() - startTime;
     console.log(`[BTC API] Request completed in ${duration}ms, success: ${result.success}`);
