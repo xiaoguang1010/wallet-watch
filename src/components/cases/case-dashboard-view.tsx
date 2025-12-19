@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { AlertsList } from '@/components/alerts/alerts-list';
+import { TransactionList } from './transaction-list';
 
 interface Token {
     symbol: string;
@@ -48,12 +49,27 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
     const [loadingBalances, setLoadingBalances] = useState(true);
     const [totalAssets, setTotalAssets] = useState(0);
     const [assetDistribution, setAssetDistribution] = useState<Array<{ name: string; value: number }>>([]);
+    const [selectedToken, setSelectedToken] = useState<{ walletAddress: string; address: string; chain: string; token: Token } | null>(null);
 
     if (!data) return <div>{t('not_found')}</div>;
 
+    // Handle token click
+    const handleTokenClick = (addressId: string, walletAddress: string, chain: string, token: Token) => {
+        setSelectedToken({ 
+            address: addressId, 
+            walletAddress,
+            chain,
+            token 
+        });
+        console.log('Token clicked:', { addressId, walletAddress, chain, token });
+    };
+
     // Fetch balances function (extracted for reuse)
     const fetchBalances = useCallback(async (showLoading = false) => {
-        if (!data?.id) return;
+        if (!data?.id || !data?.addresses || data.addresses.length === 0) {
+            setLoadingBalances(false);
+            return;
+        }
         
         if (showLoading) {
             setLoadingBalances(true);
@@ -205,7 +221,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
             } finally {
                 setLoadingBalances(false);
             }
-    }, [data?.id]);
+    }, [data?.id, data?.addresses]);
 
     // Fetch balances for all addresses
     useEffect(() => {
@@ -217,7 +233,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         }, 5 * 60 * 1000); // 5分钟 = 300,000 毫秒
         
         return () => clearInterval(interval);
-    }, [fetchBalances]);
+    }, [fetchBalances]); // fetchBalances 已依赖 data.addresses，所以地址变化时会自动重新获取
 
     const handleDelete = async () => {
         if (!confirm(t('delete_confirm'))) return;
@@ -431,16 +447,49 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                                     </div>
                                                     {balance.tokens.length > 0 && (
                                                         <div className="mt-2 pt-2 border-t border-gray-100">
-                                                            <div className="text-xs text-gray-500 mb-1">Tokens:</div>
+                                                            <div className="text-xs text-gray-500 mb-2">Tokens:</div>
                                                             <div className="space-y-1">
-                                                                {balance.tokens.map((token, index) => (
-                                                                    <div key={`${token.symbol}-${index}`} className="flex items-center justify-between text-xs">
-                                                                        <span className="text-gray-700">{token.symbol}</span>
-                                                                        <span className="text-gray-600">
-                                                                            ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
+                                                                {balance.tokens.map((token, index) => {
+                                                                    // 检查是否支持交易查询（支持ETH和BTC）
+                                                                    const chainUpper = addr.chain?.toUpperCase();
+                                                                    const supportsTransactions = chainUpper === 'ETH' || chainUpper === 'BTC';
+                                                                    
+                                                                    return supportsTransactions ? (
+                                                                        <button
+                                                                            key={`${token.symbol}-${index}`}
+                                                                            onClick={() => handleTokenClick(addr.id, addr.address, addr.chain, token)}
+                                                                            className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors cursor-pointer group"
+                                                                        >
+                                                                            <span className="flex items-center gap-2 font-medium text-gray-700 group-hover:text-gray-900">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                                                {token.symbol}
+                                                                            </span>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-gray-600 group-hover:text-gray-900">
+                                                                                    ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                                </span>
+                                                                                <svg className="w-3 h-3 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                                </svg>
+                                                                            </div>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <div
+                                                                            key={`${token.symbol}-${index}`}
+                                                                            className="w-full flex items-center justify-between px-2 py-1.5 text-xs"
+                                                                            title={`${addr.chain} 交易查询功能即将支持`}
+                                                                        >
+                                                                            <span className="flex items-center gap-2 font-medium text-gray-700">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                                                                {token.symbol}
+                                                                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">即将支持</span>
+                                                                            </span>
+                                                                            <span className="text-gray-600">
+                                                                                ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
@@ -456,6 +505,20 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
                     )}
                 </div>
+
+                {/* Transaction History Section */}
+                {selectedToken && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <TransactionList
+                            address={selectedToken.walletAddress}
+                            tokenSymbol={selectedToken.token.symbol}
+                            tokenAddress={selectedToken.token.address !== '0x0000000000000000000000000000000000000000' ? selectedToken.token.address : undefined}
+                            chainId="1"
+                            chainType={selectedToken.chain?.toUpperCase() as 'ETH' | 'BTC' | 'TRON'}
+                            onClose={() => setSelectedToken(null)}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );
