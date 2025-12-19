@@ -155,7 +155,6 @@ export class AuthService {
                 type: "public-key",
             })),
             userVerification: "preferred",
-            userVerification: "preferred",
             timeout: 60000, // 60 seconds
         });
 
