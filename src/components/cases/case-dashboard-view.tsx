@@ -246,6 +246,9 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         addresses: data.addresses || [],
     };
 
+    // 判断是否为"所有分组"视图（虚拟汇总视图，不显示编辑/删除按钮）
+    const isAllCasesView = data.id === 'all-cases';
+
     return (
         <div className="bg-gray-50 p-6">
             <div className="space-y-6">
@@ -255,36 +258,38 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         <h1 className="text-3xl font-bold text-gray-900">{data.name}</h1>
                         <p className="text-sm text-gray-500 mt-1">{data.description}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <CaseDialog
-                            mode="edit"
-                            initialData={editData}
-                            open={isEditOpen}
-                            onOpenChange={setIsEditOpen}
-                            onSuccess={() => {
-                                // 保存成功后立即刷新余额
-                                fetchBalances(true);
-                                // 刷新页面数据
-                                router.refresh();
-                            }}
-                            trigger={
-                                <Button variant="outline" size="sm" suppressHydrationWarning>
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    {t('edit_group')}
-                                </Button>
-                            }
-                        />
+                    {!isAllCasesView && (
+                        <div className="flex items-center gap-2">
+                            <CaseDialog
+                                mode="edit"
+                                initialData={editData}
+                                open={isEditOpen}
+                                onOpenChange={setIsEditOpen}
+                                onSuccess={() => {
+                                    // 保存成功后立即刷新余额
+                                    fetchBalances(true);
+                                    // 刷新页面数据
+                                    router.refresh();
+                                }}
+                                trigger={
+                                    <Button variant="outline" size="sm" suppressHydrationWarning>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        {t('edit_group')}
+                                    </Button>
+                                }
+                            />
 
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                        >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            {t('delete')}
-                        </Button>
-                    </div>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {t('delete')}
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stats Cards */}
@@ -308,14 +313,16 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
                 </div>
 
-                {/* Alerts List */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <AlertsList caseId={data.id} />
-                </div>
+                {/* Alerts List - 只在非"所有分组"视图时显示 */}
+                {!isAllCasesView && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <AlertsList caseId={data.id} />
+                    </div>
+                )}
 
-                <div className="grid grid-cols-12 gap-6">
+                <div className={`grid grid-cols-12 gap-6`}>
                 {/* Asset Distribution Chart */}
-                    <div className="col-span-7 bg-white rounded-lg border border-gray-200 p-6">
+                    <div className={`${isAllCasesView ? 'col-span-12' : 'col-span-7'} bg-white rounded-lg border border-gray-200 p-6`}>
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-base font-medium text-gray-900">{t('asset_dist')}</h3>
@@ -394,7 +401,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
 
                 {/* Address List */}
-                    <div className="col-span-5 bg-white rounded-lg border border-gray-200 p-6">
+                    {!isAllCasesView && (
+                        <div className="col-span-5 bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-base font-medium text-gray-900 mb-4">{t('addr_list')}</h3>
                         {loadingBalances ? (
                             <div className="flex items-center justify-center py-8">
@@ -446,6 +454,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
             </div>
         </div>

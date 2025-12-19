@@ -95,6 +95,94 @@ export async function getUserCases() {
     });
 }
 
+/**
+ * 获取当前用户所有 case 的所有地址（递归获取所有子文件夹的地址）
+ * 用于在 dashboard 首页显示所有分组的钱包信息
+ */
+export async function getAllCasesAddresses() {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return null;
+    const user = userResult.data;
+
+    // 获取所有 case
+    const allCases = await db.query.cases.findMany({
+        where: eq(cases.userId, user.id),
+    });
+
+    if (allCases.length === 0) {
+        return {
+            id: 'all-cases',
+            name: '所有分组',
+            description: '所有分组的钱包地址汇总',
+            addresses: [],
+            stats: {
+                totalAssets: 0,
+                addressCount: 0,
+                assetDistribution: []
+            }
+        };
+    }
+
+    // 递归获取某个 case 及其所有子文件夹的 ID
+    const getAllCaseIdsRecursive = async (caseId: string): Promise<string[]> => {
+        const result: string[] = [caseId];
+        
+        // 获取所有子文件夹
+        const children = await db.query.cases.findMany({
+            where: and(
+                eq(cases.parentId, caseId),
+                eq(cases.userId, user.id)
+            ),
+        });
+
+        // 递归获取每个子文件夹及其子文件夹
+        for (const child of children) {
+            const childIds = await getAllCaseIdsRecursive(child.id);
+            result.push(...childIds);
+        }
+
+        return result;
+    };
+
+    // 只处理根节点（parentId 为 null 的 case），然后递归获取所有子文件夹
+    const rootCases = allCases.filter(c => !c.parentId);
+    
+    // 获取所有 case 的 ID（包括子文件夹）
+    const allCaseIds: string[] = [];
+    for (const rootCase of rootCases) {
+        const caseIds = await getAllCaseIdsRecursive(rootCase.id);
+        allCaseIds.push(...caseIds);
+    }
+
+    // 去重（虽然理论上不应该有重复，但为了安全起见）
+    const uniqueCaseIds = Array.from(new Set(allCaseIds));
+
+    // 获取所有地址
+    const allAddresses = await db.query.monitoredAddresses.findMany({
+        where: inArray(monitoredAddresses.caseId, uniqueCaseIds),
+    });
+
+    // Mock Asset Data Calculation
+    const totalAssets = allAddresses.length * 1234.56; // Mock value
+    const assetDist = [
+        { name: 'BTC', value: 400 },
+        { name: 'ETH', value: 300 },
+        { name: 'TRON', value: 300 },
+    ];
+
+    return {
+        id: 'all-cases',
+        name: '所有分组',
+        description: '所有分组的钱包地址汇总',
+        addresses: allAddresses,
+        stats: {
+            totalAssets,
+            addressCount: allAddresses.length,
+            assetDistribution: assetDist
+        }
+    };
+}
+
 export type FolderNode = {
     id: string;
     name: string;
@@ -181,8 +269,9 @@ export async function getCaseAddressesRecursive(caseId: string): Promise<Array<{
     network: string | null;
     createdAt: Date | null;
 }>> {
-    const user = await getCurrentUser();
-    if (!user) return [];
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return [];
+    const user = userResult.data;
 
     // 验证该文件夹属于当前用户
     const caseData = await db.query.cases.findFirst({
@@ -238,8 +327,31 @@ export async function getCaseDetails(caseId: string) {
 
     if (!caseData || caseData.userId !== user.id) return null;
 
+    // 递归获取该 case 及其所有子文件夹的地址
+    const getAllChildCaseIds = async (parentId: string): Promise<string[]> => {
+        const children = await db.query.cases.findMany({
+            where: and(
+                eq(cases.parentId, parentId),
+                eq(cases.userId, user.id)
+            ),
+        });
+
+        let childIds: string[] = [];
+        for (const child of children) {
+            childIds.push(child.id);
+            const grandChildren = await getAllChildCaseIds(child.id);
+            childIds = childIds.concat(grandChildren);
+        }
+
+        return childIds;
+    };
+
+    const childCaseIds = await getAllChildCaseIds(caseId);
+    const allCaseIds = [caseId, ...childCaseIds];
+
+    // 获取该 case 及其所有子文件夹的所有地址
     const addresses = await db.query.monitoredAddresses.findMany({
-        where: eq(monitoredAddresses.caseId, caseId),
+        where: inArray(monitoredAddresses.caseId, allCaseIds),
     });
 
     // Mock Asset Data Calculation
