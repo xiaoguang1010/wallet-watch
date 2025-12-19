@@ -2,7 +2,18 @@
  * 资产组合服务 - 处理多链资产汇总
  */
 
-const BigNumber = require('bignumber.js');
+// 在 Vercel/Next.js 环境中，需要从项目根目录加载 bignumber.js
+let BigNumber;
+try {
+  // 首先尝试正常的 require
+  BigNumber = require('bignumber.js');
+} catch (e) {
+  // 如果失败，尝试从项目根目录的 node_modules 加载
+  const path = require('path');
+  const bignumberPath = path.join(process.cwd(), 'node_modules', 'bignumber.js');
+  BigNumber = require(bignumberPath);
+}
+
 const { getChainBalance } = require('./balance');
 const btcAPI = require('../api/btc');
 const ethAPI = require('../api/eth');

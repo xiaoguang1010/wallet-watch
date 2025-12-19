@@ -23,6 +23,7 @@ function getPortfolioService() {
   if (!portfolioModule) {
     // 使用 process.cwd() 获取项目根目录，然后构建路径
     const portfolioPath = path.join(process.cwd(), 'src', 'balances', 'src', 'services', 'portfolio.js');
+    console.log('[balance-service] Loading portfolio module from:', portfolioPath);
     portfolioModule = require(portfolioPath);
   }
   return portfolioModule;
