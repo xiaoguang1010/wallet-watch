@@ -12,8 +12,8 @@ import { v4 as uuidv4 } from 'uuid';
  * 获取 case 的所有提醒
  */
 export async function getCaseAlerts(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) return null;
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return null;
 
     try {
         const alertsList = await db.query.alerts.findMany({
@@ -36,8 +36,8 @@ export async function getCaseAlerts(caseId: string) {
  * 获取未读提醒数量
  */
 export async function getUnreadAlertCount(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) return 0;
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return 0;
 
     try {
         const unreadAlerts = await db.query.alerts.findMany({
@@ -58,8 +58,8 @@ export async function getUnreadAlertCount(caseId: string) {
  * 标记提醒为已读
  */
 export async function markAlertAsRead(alertId: string) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         return { error: 'Unauthorized' };
     }
 
@@ -80,8 +80,8 @@ export async function markAlertAsRead(alertId: string) {
  * 标记所有提醒为已读
  */
 export async function markAllAlertsAsRead(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         return { error: 'Unauthorized' };
     }
 
@@ -102,8 +102,8 @@ export async function markAllAlertsAsRead(caseId: string) {
  * 创建提醒规则
  */
 export async function createAlertRule(input: CreateAlertRuleInput) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         return { error: 'Unauthorized' };
     }
 
@@ -134,8 +134,8 @@ export async function createAlertRule(input: CreateAlertRuleInput) {
  * 获取 case 的所有提醒规则
  */
 export async function getCaseAlertRules(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) return [];
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return [];
 
     try {
         const rules = await db.query.alertRules.findMany({
@@ -157,8 +157,8 @@ export async function getCaseAlertRules(caseId: string) {
  * 更新提醒规则
  */
 export async function updateAlertRule(ruleId: string, input: Partial<CreateAlertRuleInput>) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         return { error: 'Unauthorized' };
     }
 
@@ -184,8 +184,8 @@ export async function updateAlertRule(ruleId: string, input: Partial<CreateAlert
  * 删除提醒规则
  */
 export async function deleteAlertRule(ruleId: string) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         return { error: 'Unauthorized' };
     }
 

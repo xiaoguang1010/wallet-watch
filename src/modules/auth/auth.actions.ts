@@ -4,6 +4,9 @@ import { authService } from "@/modules/auth/auth.service";
 import { cookies } from "next/headers";
 import { Result } from "@/core/types/result";
 import { AppError } from "@/core/errors/app-error";
+import { db } from "@/data/db";
+import { users } from "@/data/schema/users";
+import { eq } from "drizzle-orm";
 
 // --- Registration ---
 
@@ -96,12 +99,17 @@ export async function getCurrentUser() {
     const cookieStore = await cookies();
     const userId = cookieStore.get("session_user_id")?.value;
 
-    if (!userId) return null;
+    if (!userId) return Result.fail("Not authenticated");
 
-    // TODO: Ideally fetch full user from DB, for now returning minimal info or fetching via service
-    // For cases.actions.ts we just need the ID mostly, but let's fetch basic info
-    // However, to avoid circular deps if auth service uses db, let's keep it simple here.
-    // If we need real user object, we should import db here.
+    try {
+        const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        
+        if (!user || user.length === 0) {
+            return Result.fail("User not found");
+        }
 
-    return { id: userId };
+        return Result.ok(user[0]);
+    } catch (error: any) {
+        return Result.fail(error.message || "Failed to fetch user");
+    }
 }

@@ -12,10 +12,11 @@ import { redirect } from '@/i18n/routing';
 import { createCaseSchema, CreateCaseInput } from './cases.schema';
 
 export async function createCaseAction(input: CreateCaseInput) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         throw new Error("Unauthorized");
     }
+    const user = userResult.data;
 
     const val = createCaseSchema.safeParse(input);
     if (!val.success) {
@@ -84,8 +85,9 @@ export async function createCaseAction(input: CreateCaseInput) {
 }
 
 export async function getUserCases() {
-    const user = await getCurrentUser();
-    if (!user) return [];
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return [];
+    const user = userResult.data;
 
     return await db.query.cases.findMany({
         where: eq(cases.userId, user.id),
@@ -103,8 +105,9 @@ export type FolderNode = {
 };
 
 export async function getUserCasesTree(): Promise<FolderNode[]> {
-    const user = await getCurrentUser();
-    if (!user) return [];
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return [];
+    const user = userResult.data;
 
     const allCases = await db.query.cases.findMany({
         where: eq(cases.userId, user.id),
@@ -222,8 +225,9 @@ export async function getCaseAddressesRecursive(caseId: string): Promise<Array<{
 }
 
 export async function getCaseDetails(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) return null;
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) return null;
+    const user = userResult.data;
 
     const caseData = await db.query.cases.findFirst({
         where: eq(cases.id, caseId),
@@ -258,10 +262,11 @@ export async function getCaseDetails(caseId: string) {
 }
 
 export async function deleteCaseAction(caseId: string) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         throw new Error("Unauthorized");
     }
+    const user = userResult.data;
 
     try {
         // Ensure only the owner can delete
@@ -282,10 +287,11 @@ export async function deleteCaseAction(caseId: string) {
 }
 
 export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
-    const user = await getCurrentUser();
-    if (!user) {
+    const userResult = await getCurrentUser();
+    if (!userResult.success || !userResult.data) {
         throw new Error("Unauthorized");
     }
+    const user = userResult.data;
 
     const val = createCaseSchema.safeParse(input);
     if (!val.success) {

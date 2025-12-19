@@ -5,11 +5,20 @@ import { cookies } from 'next/headers';
 import { Button } from "@/components/ui/button";
 import {
     LayoutDashboard,
-    Wallet,
     Settings,
     LogOut,
-    UserCircle
+    UserCircle,
+    ChevronDown
 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { logout, getCurrentUser } from "@/modules/auth/auth.actions";
 import { getUserCasesTree } from '@/modules/cases/cases.actions';
 import { LayoutWrapper } from './layout-wrapper';
@@ -31,7 +40,12 @@ export default async function DashboardLayout({
     }
 
     const t = await getTranslations('Dashboard');
+    const tMenu = await getTranslations('UserMenu');
     const folderTree = await getUserCasesTree();
+    
+    const userResult = await getCurrentUser();
+    const user = userResult.success ? userResult.data : null;
+    const userInitials = user?.username.substring(0, 2).toUpperCase() || 'U';
 
     return (
         <div className="flex min-h-screen bg-muted/20">
@@ -57,30 +71,58 @@ export default async function DashboardLayout({
                     </div>
                     
                     <LayoutWrapper folders={folderTree} />
-
-                    <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {t('settings_section')}
-                    </div>
-
-                    <Link href="/dashboard/settings">
-                        <Button variant="ghost" className="w-full justify-start gap-2">
-                            <Settings className="w-4 h-4" />
-                            {t('settings')}
-                        </Button>
-                    </Link>
                 </nav>
 
                 <div className="p-4 border-t">
-                    <form action={async () => {
-                        'use server';
-                        await logout();
-                        redirect({ href: '/auth/login', locale });
-                    }}>
-                        <Button variant="outline" className="w-full gap-2 text-destructive hover:text-destructive">
-                            <LogOut className="w-4 h-4" />
-                            Sign Out
-                        </Button>
-                    </form>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-3">
+                                <Avatar className="w-8 h-8">
+                                    <AvatarImage src={user?.avatarUrl || undefined} alt={user?.username} />
+                                    <AvatarFallback>{userInitials}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 text-left">
+                                    <div className="text-sm font-medium">{user?.displayName || user?.username}</div>
+                                    <div className="text-xs text-muted-foreground">@{user?.username}</div>
+                                </div>
+                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{user?.displayName || user?.username}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">@{user?.username}</p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <Link href="/dashboard/profile">
+                                <DropdownMenuItem>
+                                    <UserCircle className="mr-2 h-4 w-4" />
+                                    <span>{tMenu('profile')}</span>
+                                </DropdownMenuItem>
+                            </Link>
+                            <Link href="/dashboard/settings">
+                                <DropdownMenuItem>
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    <span>{tMenu('settings')}</span>
+                                </DropdownMenuItem>
+                            </Link>
+                            <DropdownMenuSeparator />
+                            <form action={async () => {
+                                'use server';
+                                await logout();
+                                redirect({ href: '/auth/login', locale });
+                            }}>
+                                <button type="submit" className="w-full">
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>{tMenu('signOut')}</span>
+                                    </DropdownMenuItem>
+                                </button>
+                            </form>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </aside>
 
