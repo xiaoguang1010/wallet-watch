@@ -70,9 +70,9 @@ export async function createCaseAction(input: CreateCaseInput) {
                 return { error: "Parent folder not found or unauthorized" };
             }
 
-            // Check depth limit (max 3 levels)
-            if (parentFolder.level >= 3) {
-                return { error: "Folder depth cannot exceed 3 levels" };
+            // Check depth limit (max 2 levels)
+            if (parentFolder.level >= 2) {
+                return { error: "Folder depth cannot exceed 2 levels" };
             }
 
             level = parentFolder.level + 1;

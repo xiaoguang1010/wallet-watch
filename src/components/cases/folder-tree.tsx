@@ -107,8 +107,8 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
 
     const hasChildren = folder.children.length > 0;
     const isActive = currentCaseId === folder.id;
-    const canHaveChildren = folder.level < 3; // Only levels 1 and 2 can have children
-    const isLevel3 = folder.level === 3; // Level 3 folders can only add addresses
+    const canHaveChildren = folder.level < 2; // Only level 1 can have children (now max 2 levels)
+    const isLevel2 = folder.level === 2; // Level 2 folders can only add addresses
 
     const handleClick = () => {
         router.push(`/${locale}/dashboard/cases/${folder.id}`);
@@ -123,11 +123,11 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
 
     const handleCreateSubfolder = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (isLevel3) {
-            // Level 3: open address dialog
+        if (isLevel2) {
+            // Level 2: open address dialog
             onAddAddresses?.(folder.id);
         } else {
-            // Level 1 & 2: show inline input
+            // Level 1: show inline input
             setShowInlineInput(true);
             setIsExpanded(true); // Auto expand when creating child
         }
@@ -224,7 +224,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                                         e.stopPropagation();
                                         handleCreateSubfolder(e);
                                     }}
-                                    title={isLevel3 ? "添加监控地址" : "创建子目录"}
+                                    title={isLevel2 ? "添加监控地址" : "创建子目录"}
                                 >
                                     <Plus className="w-3 h-3" />
                                 </Button>
