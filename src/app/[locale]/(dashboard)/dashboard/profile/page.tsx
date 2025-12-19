@@ -15,6 +15,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
     
     if (!userResult.success || !userResult.data) {
         redirect({ href: '/auth/login', locale });
+        return; // TypeScript needs this even though redirect never returns
     }
 
     const user = userResult.data;
