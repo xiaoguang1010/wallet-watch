@@ -67,13 +67,20 @@ export function TransactionList({
             const result = await response.json();
 
             if (!result.success) {
-                throw new Error(result.error || 'Failed to fetch transactions');
+                // Keep UI message friendly; raw upstream details are returned in `details`.
+                throw new Error(result.error || '交易查询失败，请稍后重试');
             }
 
             setTransactions(result.data.transactions || []);
         } catch (err: any) {
             console.error('Error fetching transactions:', err);
-            setError(err.message || 'Failed to fetch transactions');
+            const msg = String(err?.message || '');
+            // If server accidentally bubbles raw parsing text, hide it from end users.
+            if (msg.includes('Parse response error') || msg.includes('Unexpected token')) {
+                setError('交易上游服务响应异常，请稍后重试');
+            } else {
+                setError(msg || '交易查询失败，请稍后重试');
+            }
         } finally {
             setLoading(false);
         }

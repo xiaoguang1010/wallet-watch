@@ -85,6 +85,23 @@ function sendJsonRpcGet(url, method, params, timeout = 30000) {
 
       res.on('end', () => {
         try {
+          // Upstream may return plain-text errors (e.g. "error code: 504") with non-2xx status.
+          // Avoid JSON.parse on non-JSON payloads so callers get a clear error message.
+          const statusCode = res.statusCode || 0;
+          const contentType = String(res.headers['content-type'] || '');
+
+          if (statusCode >= 400) {
+            const snippet = String(data || '').trim().substring(0, 200);
+            reject(new Error(`Upstream HTTP ${statusCode}${snippet ? `: ${snippet}` : ''}`));
+            return;
+          }
+
+          if (data && !contentType.includes('application/json')) {
+            const snippet = String(data || '').trim().substring(0, 200);
+            reject(new Error(`Upstream returned non-JSON response${snippet ? `: ${snippet}` : ''}`));
+            return;
+          }
+
           const response = JSON.parse(data);
           
           if (response.error) {

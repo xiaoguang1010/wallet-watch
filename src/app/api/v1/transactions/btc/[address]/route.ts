@@ -50,12 +50,32 @@ export async function GET(
     });
   } catch (error: any) {
     console.error('Error in BTC transactions API route:', error);
+
+    // Normalize upstream failures to friendlier messages & meaningful HTTP statuses.
+    const rawMessage = String(error?.message || '');
+    const isTimeout =
+      rawMessage.includes('Upstream HTTP 504') ||
+      rawMessage.includes('Request timeout') ||
+      rawMessage.includes('ETIMEDOUT');
+    const isBadGateway =
+      rawMessage.includes('Upstream returned non-JSON response') ||
+      rawMessage.includes('Parse response error') ||
+      rawMessage.includes('Upstream HTTP 502');
+
+    const status = isTimeout ? 504 : isBadGateway ? 502 : 500;
+    const message = isTimeout
+      ? '交易上游服务超时(504)，请稍后重试'
+      : isBadGateway
+        ? '交易上游服务响应异常，请稍后重试'
+        : (error?.message || 'Failed to fetch BTC transactions');
+
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to fetch BTC transactions',
+        error: message,
+        details: rawMessage || undefined,
       },
-      { status: 500 }
+      { status }
     );
   }
 }

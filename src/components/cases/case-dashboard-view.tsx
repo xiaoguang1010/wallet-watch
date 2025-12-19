@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { AlertsList } from '@/components/alerts/alerts-list';
 import { TransactionList } from './transaction-list';
+import { TokenLogo } from '@/components/tokens/token-logo';
 
 interface Token {
     symbol: string;
@@ -443,19 +444,21 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     </div>
                 )}
 
-                {/* Address List - 卡片式展示 */}
+                {/* Address List - 卡片式展示（含 Tokens，可点击查看交易） */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {data.addresses.map((addr: any) => {
                         const balance = addressBalances.get(addr.id);
-                        const mainToken = balance?.tokens[0]; // 获取主要代币
-                        
+                        const mainToken = balance?.tokens?.[0] ?? null;
+                        const chainUpper = (addr.chain?.toUpperCase?.() ?? String(addr.chain || '').toUpperCase()) as string;
+                        const supportsTransactions = chainUpper === 'ETH' || chainUpper === 'BTC';
+
                         return (
                             <div key={addr.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                                {/* Header: 钱包名称 */}
+                                {/* Header */}
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                            <span className="text-sm font-medium text-gray-600">{addr.chain.charAt(0)}</span>
+                                            <span className="text-sm font-medium text-gray-600">{String(addr.chain || '').charAt(0)}</span>
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">{data.name}</span>
                                     </div>
@@ -464,15 +467,17 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
 
                                 {/* Address */}
                                 <div className="mb-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs text-gray-500">{addr.chain}</span>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs text-gray-500">{addr.chain} · {addr.network}</span>
+                                        <span className="text-xs text-gray-400">#{addr.id}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-mono text-gray-600 truncate flex-1">{addr.address}</span>
-                                        <button 
-                                            onClick={() => navigator.clipboard.writeText(addr.address)}
+                                        <button
+                                            onClick={() => navigator.clipboard?.writeText?.(addr.address)}
                                             className="p-1 hover:bg-gray-100 rounded"
                                             title="复制地址"
+                                            type="button"
                                         >
                                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -481,29 +486,80 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                     </div>
                                 </div>
 
-                                {/* Balance Display */}
+                                {/* Balance + Tokens */}
                                 {loadingBalances ? (
                                     <div className="flex items-center justify-center py-8">
                                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                                     </div>
-                                ) : balance && mainToken ? (
-                                    <div className="border-t border-gray-100 pt-4">
+                                ) : balance ? (
+                                    <div className="border-t border-gray-100 pt-4 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                                                    <span className="text-white text-sm font-medium">{mainToken.symbol.charAt(0)}</span>
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-gray-900">{mainToken.symbol}</div>
-                                                    <div className="text-xs text-gray-500">{mainToken.formattedBalance}</div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold text-gray-900">
-                                                    $ {mainToken.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </div>
+                                            <div className="text-sm text-gray-500">Total Value</div>
+                                            <div className="text-lg font-bold text-gray-900">
+                                                $ {balance.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
+
+                                        {mainToken && (
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <TokenLogo symbol={mainToken.symbol} size={20} className="shrink-0" />
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900">{mainToken.symbol}</div>
+                                                        <div className="text-xs text-gray-500">{mainToken.formattedBalance}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-semibold text-gray-900">
+                                                        $ {mainToken.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {balance.tokens?.length > 0 && (
+                                            <div className="pt-2 border-t border-gray-100">
+                                                <div className="text-xs text-gray-500 mb-2">Tokens</div>
+                                                <div className="space-y-1">
+                                                    {balance.tokens.map((token, index) => {
+                                                        const key = `${token.symbol}-${index}`;
+                                                        const row = (
+                                                            <>
+                                                                <span className="flex items-center gap-2 font-medium text-gray-700">
+                                                                    <TokenLogo symbol={token.symbol} size={16} className="shrink-0" />
+                                                                    {token.symbol}
+                                                                    {!supportsTransactions && (
+                                                                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">即将支持</span>
+                                                                    )}
+                                                                </span>
+                                                                <span className="text-gray-600">
+                                                                    ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </span>
+                                                            </>
+                                                        );
+
+                                                        return supportsTransactions ? (
+                                                            <button
+                                                                key={key}
+                                                                onClick={() => handleTokenClick(addr.id, addr.address, addr.chain, token)}
+                                                                className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                                                                type="button"
+                                                            >
+                                                                {row}
+                                                            </button>
+                                                        ) : (
+                                                            <div
+                                                                key={key}
+                                                                className="w-full flex items-center justify-between px-2 py-1.5 text-xs"
+                                                                title={`${addr.chain} 交易查询功能即将支持`}
+                                                            >
+                                                                {row}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="border-t border-gray-100 pt-4">

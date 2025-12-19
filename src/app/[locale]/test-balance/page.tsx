@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Loader2 } from "lucide-react";
+import { TokenLogo } from '@/components/tokens/token-logo';
 
 interface Token {
     symbol: string;
@@ -234,7 +235,10 @@ export default function TestBalancePage() {
                                             {wallet.tokens.map((token, index) => (
                                                 <div key={`${token.symbol}-${index}`} className="border-b pb-2 last:border-0 last:pb-0">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-semibold">{token.symbol}</span>
+                                                        <span className="font-semibold flex items-center gap-2">
+                                                            <TokenLogo symbol={token.symbol} size={18} className="shrink-0" />
+                                                            {token.symbol}
+                                                        </span>
                                                         <span className="text-sm text-muted-foreground">
                                                             {token.usdValueFormatted.startsWith('<') 
                                                                 ? token.usdValueFormatted 
