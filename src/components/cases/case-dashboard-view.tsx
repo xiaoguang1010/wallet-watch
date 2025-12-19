@@ -52,7 +52,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
     const [assetDistribution, setAssetDistribution] = useState<Array<{ name: string; value: number }>>([]);
     const [selectedToken, setSelectedToken] = useState<{ walletAddress: string; address: string; chain: string; token: Token } | null>(null);
     const [expandedTokenSections, setExpandedTokenSections] = useState<Set<string>>(new Set());
-    const showPositiveNetChange = !loadingBalances && totalAssets > 250000;
+    // 近7日余额净变动：目前暂无真实计算逻辑，先将历史的 mock 展示清零。
+    const netChange7dUsd = 0;
 
     if (!data) return <div>{t('not_found')}</div>;
 
@@ -369,17 +370,12 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                             {/* 右下: 近7日余额净变动 */}
                             <div className="bg-white rounded-lg border border-gray-200 p-8 flex flex-col justify-center">
                                 <div
-                                    className={[
-                                        "text-3xl font-bold mb-6",
-                                        showPositiveNetChange ? "text-green-600" : "text-gray-900",
-                                    ].join(' ')}
+                                    className="text-3xl font-bold mb-6 text-gray-900"
                                 >
                                     {loadingBalances ? (
                                         '...'
-                                    ) : showPositiveNetChange ? (
-                                        '+ $ 245,320'
                                     ) : (
-                                        '$ 0'
+                                        `$ ${netChange7dUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
                                     )}
                                 </div>
                                 <div className="text-sm text-gray-500">近7日余额净变动</div>
