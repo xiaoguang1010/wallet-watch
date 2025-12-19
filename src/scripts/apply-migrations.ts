@@ -19,7 +19,8 @@ if (!DATABASE_URL) {
 async function applyMigrations() {
     console.log('🚀 开始应用数据库迁migrations...\n');
     
-    const connection = await mysql.createConnection(DATABASE_URL);
+    // TypeScript 类型断言：此时 DATABASE_URL 已经通过上面的检查确保不为 undefined
+    const connection = await mysql.createConnection(DATABASE_URL!);
     
     try {
         // 读取所有迁移文件

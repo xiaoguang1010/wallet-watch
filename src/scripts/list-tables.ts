@@ -1,9 +1,15 @@
 import mysql from 'mysql2/promise';
 
-const DATABASE_URL = process.env.DATABASE_URL || "mysql://root:mbk3zqBRQ9DS@52.80.70.16:3306/walletwatch";
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+    console.error('❌ 请设置 DATABASE_URL 环境变量');
+    console.error('   例如: DATABASE_URL="mysql://root:password@localhost:3306/walletwatch" npx tsx src/scripts/list-tables.ts');
+    process.exit(1);
+}
 
 async function listTables() {
-    const connection = await mysql.createConnection(DATABASE_URL);
+    const connection = await mysql.createConnection(DATABASE_URL!);
     
     try {
         console.log('📊 检查数据库表...\n');
