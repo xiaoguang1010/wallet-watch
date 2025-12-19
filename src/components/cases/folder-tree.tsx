@@ -18,6 +18,7 @@ interface FolderTreeProps {
     showCreateRoot?: boolean;
     onCancelCreateRoot?: () => void;
     onTriggerCreateRoot?: () => void;
+    onFolderClick?: (caseId: string, folderName: string) => void;
 }
 
 export function FolderTree({ 
@@ -28,7 +29,8 @@ export function FolderTree({
     onDeleteFolder,
     showCreateRoot, 
     onCancelCreateRoot,
-    onTriggerCreateRoot 
+    onTriggerCreateRoot,
+    onFolderClick
 }: FolderTreeProps) {
     const t = useTranslations('Dashboard');
     
@@ -69,6 +71,7 @@ export function FolderTree({
                     onAddAddresses={onAddAddresses}
                     onEditFolder={onEditFolder}
                     onDeleteFolder={onDeleteFolder}
+                    onFolderClick={onFolderClick}
                 />
             ))}
         </div>
@@ -82,9 +85,10 @@ interface FolderTreeNodeProps {
     onAddAddresses?: (folderId: string) => void;
     onEditFolder?: (folderId: string, currentName: string) => void;
     onDeleteFolder?: (folderId: string, folderName: string) => void;
+    onFolderClick?: (caseId: string, folderName: string) => void; // 新增
 }
 
-function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder }: FolderTreeNodeProps) {
+function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick }: FolderTreeNodeProps) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [showInlineInput, setShowInlineInput] = useState(false);
@@ -275,6 +279,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                             onAddAddresses={onAddAddresses}
                             onEditFolder={onEditFolder}
                             onDeleteFolder={onDeleteFolder}
+                            onFolderClick={onFolderClick}
                         />
                     ))}
                 </div>

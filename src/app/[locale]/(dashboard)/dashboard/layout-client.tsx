@@ -75,7 +75,7 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
 
             const result = await updateCaseAction(folderId, {
                 name: newName,
-                description: folder.description || '', // Use empty string instead of undefined
+                description: '',
                 parentId: folder.parentId,
                 addresses: [], // Keep existing addresses (backend will handle)
             });

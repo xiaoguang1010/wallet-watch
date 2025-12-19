@@ -7,7 +7,7 @@ import { monitoredAddresses } from '@/data/schema/addresses';
 import { getCurrentUser } from '@/modules/auth/auth.actions';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { redirect } from '@/i18n/routing';
 import { createCaseSchema, CreateCaseInput } from './cases.schema';
 
@@ -51,41 +51,38 @@ export async function createCaseAction(input: CreateCaseInput) {
             level = parentFolder.level + 1;
         }
 
-        await db.transaction(async (tx) => {
-            // 1. Create Folder
-            await tx.insert(cases).values({
-                id: caseId,
-                userId: user.id,
-                name,
-                description,
-                parentId: parentId || null,
-                level,
-                status: 'active',
-            });
-
-            // 2. Insert Addresses (optional)
-            if (addresses && addresses.length > 0) {
-                await tx.insert(monitoredAddresses).values(
-                    addresses.map(addr => ({
-                        id: uuidv4(),
-                        caseId: caseId,
-                        address: addr.address,
-                        chain: addr.chain,
-                        network: addr.network || 'L1',
-                    }))
-                );
-            }
+        // Create the case
+        await db.insert(cases).values({
+            id: caseId,
+            userId: user.id,
+            name,
+            description: description || null,
+            parentId: parentId || null,
+            level,
+            status: 'active',
         });
 
+        // Insert addresses if provided
+        if (addresses && addresses.length > 0) {
+            const addressValues = addresses.map(addr => ({
+                id: uuidv4(),
+                caseId,
+                address: addr.address,
+                chain: addr.chain,
+                network: addr.network || null,
+            }));
+
+            await db.insert(monitoredAddresses).values(addressValues);
+        }
+
         revalidatePath('/dashboard');
-        return { success: true, caseId };
-    } catch (error) {
-        console.error("Failed to create folder:", error);
-        return { error: "Failed to create folder" };
+        return { success: true, id: caseId };
+    } catch (error: any) {
+        console.error('Error creating case:', error);
+        return { error: error.message || "Failed to create folder" };
     }
 }
 
-// Get all user folders as flat list (for tree building)
 export async function getUserCases() {
     const user = await getCurrentUser();
     if (!user) return [];
@@ -96,61 +93,132 @@ export async function getUserCases() {
     });
 }
 
-// Build tree structure from flat list
 export type FolderNode = {
     id: string;
     name: string;
     level: number;
     parentId: string | null;
     children: FolderNode[];
-    description: string | null;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
+    addressCount?: number; // 该文件夹及其子文件夹的地址总数
 };
 
 export async function getUserCasesTree(): Promise<FolderNode[]> {
     const user = await getCurrentUser();
     if (!user) return [];
 
-    const folders = await db.query.cases.findMany({
+    const allCases = await db.query.cases.findMany({
         where: eq(cases.userId, user.id),
         orderBy: [desc(cases.createdAt)],
     });
 
-    // Build tree
-    const folderMap = new Map<string, FolderNode>();
-    const rootFolders: FolderNode[] = [];
+    // Build tree structure
+    const caseMap = new Map<string, FolderNode>();
+    const rootNodes: FolderNode[] = [];
 
     // First pass: create all nodes
-    folders.forEach(folder => {
-        folderMap.set(folder.id, {
-            id: folder.id,
-            name: folder.name,
-            level: folder.level,
-            parentId: folder.parentId,
-            description: folder.description,
-            status: folder.status,
-            createdAt: folder.createdAt,
-            updatedAt: folder.updatedAt,
+    allCases.forEach(c => {
+        caseMap.set(c.id, {
+            id: c.id,
+            name: c.name,
+            level: c.level,
+            parentId: c.parentId,
             children: [],
+            addressCount: 0,
         });
     });
 
-    // Second pass: build tree structure
-    folders.forEach(folder => {
-        const node = folderMap.get(folder.id)!;
-        if (folder.parentId) {
-            const parent = folderMap.get(folder.parentId);
+    // Second pass: build tree
+    allCases.forEach(c => {
+        const node = caseMap.get(c.id)!;
+        if (c.parentId) {
+            const parent = caseMap.get(c.parentId);
             if (parent) {
                 parent.children.push(node);
+            } else {
+                // Orphan node, treat as root
+                rootNodes.push(node);
             }
         } else {
-            rootFolders.push(node);
+            rootNodes.push(node);
         }
     });
 
-    return rootFolders;
+    // Calculate address counts recursively
+    const calculateAddressCounts = async (node: FolderNode): Promise<number> => {
+        // Get direct addresses for this case
+        const directAddresses = await db.query.monitoredAddresses.findMany({
+            where: eq(monitoredAddresses.caseId, node.id),
+        });
+        let count = directAddresses.length;
+
+        // Add children's addresses recursively
+        for (const child of node.children) {
+            count += await calculateAddressCounts(child);
+        }
+
+        node.addressCount = count;
+        return count;
+    };
+
+    for (const root of rootNodes) {
+        await calculateAddressCounts(root);
+    }
+
+    return rootNodes;
+}
+
+/**
+ * 递归获取某个文件夹及其所有子文件夹的地址列表
+ */
+export async function getCaseAddressesRecursive(caseId: string): Promise<Array<{
+    id: string;
+    caseId: string;
+    address: string;
+    chain: string;
+    network: string | null;
+    createdAt: Date | null;
+}>> {
+    const user = await getCurrentUser();
+    if (!user) return [];
+
+    // 验证该文件夹属于当前用户
+    const caseData = await db.query.cases.findFirst({
+        where: and(
+            eq(cases.id, caseId),
+            eq(cases.userId, user.id)
+        ),
+    });
+
+    if (!caseData) return [];
+
+    // 获取所有子文件夹的 ID（递归）
+    const getAllChildCaseIds = async (parentId: string): Promise<string[]> => {
+        const children = await db.query.cases.findMany({
+            where: and(
+                eq(cases.parentId, parentId),
+                eq(cases.userId, user.id)
+            ),
+        });
+
+        let childIds: string[] = [];
+        for (const child of children) {
+            childIds.push(child.id);
+            const grandChildren = await getAllChildCaseIds(child.id);
+            childIds = childIds.concat(grandChildren);
+        }
+
+        return childIds;
+    };
+
+    const childCaseIds = await getAllChildCaseIds(caseId);
+    const allCaseIds = [caseId, ...childCaseIds];
+
+    // 获取所有地址
+    const allAddresses = await db.query.monitoredAddresses.findMany({
+        where: inArray(monitoredAddresses.caseId, allCaseIds),
+    });
+
+    return allAddresses;
 }
 
 export async function getCaseDetails(caseId: string) {
@@ -207,9 +275,9 @@ export async function deleteCaseAction(caseId: string) {
 
         revalidatePath('/dashboard');
         return { success: true };
-    } catch (error) {
-        console.error("Failed to delete case:", error);
-        return { error: "Failed to delete case" };
+    } catch (error: any) {
+        console.error('Error deleting case:', error);
+        return { error: error.message || "Failed to delete folder" };
     }
 }
 
@@ -223,21 +291,33 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
     if (!val.success) {
         return { error: val.error.format() };
     }
+
     const { name, description, addresses, parentId } = val.data;
 
     try {
-        const existing = await db.query.cases.findFirst({
-            where: eq(cases.id, caseId),
+        // Verify ownership
+        const existingCase = await db.query.cases.findFirst({
+            where: and(
+                eq(cases.id, caseId),
+                eq(cases.userId, user.id)
+            ),
         });
 
-        if (!existing || existing.userId !== user.id) {
-            return { error: "Folder not found or unauthorized" };
+        if (!existingCase) {
+            return { error: "Case not found or unauthorized" };
         }
 
-        // If parentId is being changed, validate the new parent
-        let level = existing.level;
-        if (parentId !== undefined && parentId !== existing.parentId) {
-            if (parentId) {
+        // Prevent moving to self or creating circular reference
+        if (parentId === caseId) {
+            return { error: "Cannot move folder to itself" };
+        }
+
+        // If parentId is provided, validate it
+        let level = existingCase.level;
+        if (parentId !== undefined && parentId !== existingCase.parentId) {
+            if (parentId === null) {
+                level = 1;
+            } else {
                 const parentFolder = await db.query.cases.findFirst({
                     where: and(
                         eq(cases.id, parentId),
@@ -253,48 +333,44 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
                     return { error: "Folder depth cannot exceed 3 levels" };
                 }
 
-                // Check if moving to a child (circular reference)
-                if (parentId === caseId) {
-                    return { error: "Cannot move folder to itself" };
-                }
-
                 level = parentFolder.level + 1;
-            } else {
-                level = 1; // Moving to root
             }
         }
 
-        await db.transaction(async (tx) => {
-            // 1. Update Folder Details
-            await tx.update(cases).set({
+        // Update case
+        await db.update(cases)
+            .set({
                 name,
-                description,
-                parentId: parentId || null,
+                description: description || null,
+                parentId: parentId !== undefined ? parentId : existingCase.parentId,
                 level,
-                updatedAt: new Date(),
-            }).where(eq(cases.id, caseId));
+            })
+            .where(eq(cases.id, caseId));
 
-            // 2. Replace Addresses (Delete All + Insert New)
-            await tx.delete(monitoredAddresses).where(eq(monitoredAddresses.caseId, caseId));
+        // Update addresses
+        if (addresses !== undefined) {
+            // Delete existing addresses
+            await db.delete(monitoredAddresses)
+                .where(eq(monitoredAddresses.caseId, caseId));
 
+            // Insert new addresses
             if (addresses.length > 0) {
-                await tx.insert(monitoredAddresses).values(
-                    addresses.map(addr => ({
-                        id: uuidv4(),
-                        caseId: caseId,
-                        address: addr.address,
-                        chain: addr.chain,
-                        network: addr.network || 'L1',
-                    }))
-                );
+                const addressValues = addresses.map(addr => ({
+                    id: uuidv4(),
+                    caseId,
+                    address: addr.address,
+                    chain: addr.chain,
+                    network: addr.network || null,
+                }));
+
+                await db.insert(monitoredAddresses).values(addressValues);
             }
-        });
+        }
 
         revalidatePath('/dashboard');
-        revalidatePath(`/dashboard/cases/${caseId}`);
         return { success: true };
-    } catch (error) {
-        console.error("Failed to update folder:", error);
-        return { error: "Failed to update folder" };
+    } catch (error: any) {
+        console.error('Error updating case:', error);
+        return { error: error.message || "Failed to update folder" };
     }
 }

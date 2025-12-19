@@ -35,8 +35,8 @@ export default async function DashboardLayout({
 
     return (
         <div className="flex min-h-screen bg-muted/20">
-            {/* Sidebar */}
-            <aside className="w-64 border-r bg-background hidden md:flex flex-col">
+                {/* Sidebar */}
+                <aside className="w-64 border-r bg-background hidden md:flex flex-col">
                 <div className="p-6 border-b flex items-center gap-2 font-bold text-xl">
                     <div className="flex items-center justify-center">
                         <Image src="/imKey.svg" alt="imKey Logo" width={32} height={32} className="w-8 h-8" />
@@ -101,3 +101,4 @@ export default async function DashboardLayout({
         </div>
     );
 }
+
