@@ -123,8 +123,8 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
                     // Navigate to dashboard (away from deleted folder)
                     router.push(`/${locale}/dashboard`);
                 } else {
-                    // Force a full page refresh to update the sidebar
-                    window.location.href = `/${locale}/dashboard`;
+                    // Just refresh to update the sidebar and content
+                    router.refresh();
                 }
             }
         } catch (error) {
