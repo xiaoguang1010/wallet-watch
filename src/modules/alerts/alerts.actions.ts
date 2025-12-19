@@ -2,11 +2,42 @@
 
 import { db } from '@/data/db';
 import { alerts, alertRules } from '@/data/schema/balance-snapshots';
+import { cases } from '@/data/schema/cases';
 import { getCurrentUser } from '@/modules/auth/auth.actions';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createAlertRuleSchema, type CreateAlertRuleInput } from './alert-rules.schema';
 import { v4 as uuidv4 } from 'uuid';
+
+async function getCaseAndDescendantCaseIds(caseId: string, userId: string): Promise<string[]> {
+    const visited = new Set<string>();
+    const queue: string[] = [caseId];
+    visited.add(caseId);
+
+    while (queue.length > 0) {
+        const batch = queue.splice(0, 50);
+        const children = await db
+            .select({ id: cases.id })
+            .from(cases)
+            .where(and(eq(cases.userId, userId), inArray(cases.parentId, batch)));
+
+        for (const row of children) {
+            const id = row.id;
+            if (!visited.has(id)) {
+                visited.add(id);
+                queue.push(id);
+            }
+        }
+    }
+
+    return Array.from(visited);
+}
+
+function dedupeById<T extends { id: string }>(items: T[]): T[] {
+    const map = new Map<string, T>();
+    for (const item of items) map.set(item.id, item);
+    return Array.from(map.values());
+}
 
 /**
  * 获取 case 的所有提醒
@@ -16,16 +47,19 @@ export async function getCaseAlerts(caseId: string) {
     if (!userResult.success || !userResult.data) return null;
 
     try {
+        // Include alerts from this case AND all descendant cases (sub folders).
+        const caseIds = await getCaseAndDescendantCaseIds(caseId, userResult.data.id);
         const alertsList = await db.query.alerts.findMany({
-            where: eq(alerts.caseId, caseId),
+            where: inArray(alerts.caseId, caseIds),
             orderBy: [desc(alerts.triggeredAt)],
             limit: 50, // 最多返回50条
         });
 
-        return alertsList.map((alert) => ({
+        const mapped = alertsList.map((alert) => ({
             ...alert,
             details: alert.details ? JSON.parse(alert.details) : null,
         }));
+        return dedupeById(mapped);
     } catch (error: any) {
         console.error('Error getting case alerts:', error);
         return [];
@@ -40,14 +74,15 @@ export async function getUnreadAlertCount(caseId: string) {
     if (!userResult.success || !userResult.data) return 0;
 
     try {
+        const caseIds = await getCaseAndDescendantCaseIds(caseId, userResult.data.id);
         const unreadAlerts = await db.query.alerts.findMany({
             where: and(
-                eq(alerts.caseId, caseId),
+                inArray(alerts.caseId, caseIds),
                 eq(alerts.isRead, false)
             ),
         });
 
-        return unreadAlerts.length;
+        return dedupeById(unreadAlerts).length;
     } catch (error: any) {
         console.error('Error getting unread alert count:', error);
         return 0;
@@ -86,9 +121,10 @@ export async function markAllAlertsAsRead(caseId: string) {
     }
 
     try {
+        const caseIds = await getCaseAndDescendantCaseIds(caseId, userResult.data.id);
         await db.update(alerts)
             .set({ isRead: true })
-            .where(eq(alerts.caseId, caseId));
+            .where(inArray(alerts.caseId, caseIds));
 
         revalidatePath('/dashboard');
         return { success: true };
