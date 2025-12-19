@@ -12,84 +12,70 @@ export class AuthService {
     /**
      * Step 1: Generate Registration Options
      */
+    /**
+     * Step 1: Generate Registration Options
+     */
     async generateRegistrationOptions(username: string) {
-        // 1. Check if user exists, if not create a temp one or handle existing
-        // For simplicity, we require username to be unique.
-        let user = await db.query.users.findFirst({
+        // 1. Check if user exists
+        let user: any = await db.query.users.findFirst({
             where: eq(users.username, username),
         });
 
-        if (!user) {
-            // Create new user
-            const userId = uuidv4();
-            await db.insert(users).values({
-                id: userId,
-                username,
-                displayName: username,
-            });
-            user = { id: userId, username, displayName: username } as any;
-        }
+        let userId = user ? user.id : uuidv4();
+        let userAuthenticators: any[] = [];
 
-        // 2. Get user's existing authenticators to exclude them
-        const userAuthenticators = await db.query.authenticators.findMany({
-            where: eq(authenticators.userId, user!.id),
-        });
+        if (user) {
+            // 2. Get user's existing authenticators to exclude them
+            userAuthenticators = await db.query.authenticators.findMany({
+                where: eq(authenticators.userId, user.id),
+            });
+        }
 
         const options = await generateRegistrationOptions({
             rpName: env.RP_NAME,
             rpID: env.RP_ID,
-            userID: new TextEncoder().encode(user!.id),
-            userName: user!.username,
+            userID: new TextEncoder().encode(userId),
+            userName: user ? user.username : username,
+            userDisplayName: user ? user.displayName : username,
             attestationType: "none",
             excludeCredentials: userAuthenticators.map((auth) => ({
                 id: auth.credentialID,
                 type: "public-key",
             })),
             authenticatorSelection: {
-                residentKey: "preferred",
+                residentKey: "required", // Force resident key for usernameless login support
                 userVerification: "preferred",
                 // authenticatorAttachment: "platform", // Allow both platform (TouchID) and cross-platform (YubiKey)
             },
-            timeout: 300000, // 5 minutes to avoid premature timeout during hardware interaction
+            timeout: 60000, // Reduced to 60s to avoid hanging hardware states
         });
 
-        // 3. Save challenge to DB
-        await db.update(users).set({ currentChallenge: options.challenge }).where(eq(users.id, user!.id));
-
-        return Result.ok(options);
+        // 3. Return options and context (Do NOT save to DB yet)
+        // Challenge and UserID should be stored in session/cookie by the controller
+        return Result.ok({ options, userId, username });
     }
 
     /**
      * Step 2: Verify Registration Response
      */
-    async verifyRegistration(userId: string, response: any) {
-        // Decode userId from Base64URL since SimpleWebAuthn returns it encoded in options
-        let lookupId = userId;
-        if (userId.length > 36) {
-            lookupId = Buffer.from(userId, 'base64url').toString('utf-8');
-        }
-
-        const user = await db.query.users.findFirst({
-            where: eq(users.id, lookupId),
-        });
-
-        if (!user || !user.currentChallenge) {
-            throw new AppError("User or challenge not found", "AUTH_ERROR", 400);
+    /**
+     * Step 2: Verify Registration Response
+     */
+    async verifyRegistration(response: any, expectedChallenge: string, expectedUserId: string, expectedUsername: string) {
+        if (!expectedChallenge || !expectedUserId) {
+            throw new AppError("Invalid session context", "AUTH_ERROR", 400);
         }
 
         const verification = await verifyRegistrationResponse({
             response,
-            expectedChallenge: user.currentChallenge,
+            expectedChallenge: expectedChallenge,
             expectedOrigin: env.RP_ORIGIN,
             expectedRPID: env.RP_ID,
         });
 
         if (verification.verified && verification.registrationInfo) {
             const info = verification.registrationInfo as any;
-
-            // Extract from nested 'credential' object if top-level is missing
             const credentialData = info.credential || info;
-
             const credentialID = credentialData.id || info.credentialID;
             const credentialPublicKey = credentialData.publicKey || info.credentialPublicKey;
             const counter = credentialData.counter || info.counter || 0;
@@ -98,20 +84,46 @@ export class AuthService {
                 throw new AppError("Missing public key in verification result", "AUTH_ERROR", 500);
             }
 
-            // Save authenticator
-            await db.insert(authenticators).values({
-                id: uuidv4(),
-                userId: user.id,
-                credentialID: credentialID,
-                credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'), // Store as base64 string
-                counter: counter,
-                transports: response.response.transports?.join(",") || "",
+            // Transactional User Creation + Authenticator Link
+            await db.transaction(async (tx) => {
+                // 1. Check if user exists (Double check inside transaction)
+                let user = await tx.query.users.findFirst({
+                    where: eq(users.id, expectedUserId), // Use ID from cookie to match intent
+                });
+
+                if (!user) {
+                    // Try by username just in case ID was ephemeral
+                    user = await tx.query.users.findFirst({
+                        where: eq(users.username, expectedUsername),
+                    });
+                }
+
+                if (!user) {
+                    // Create User (Lazy Creation)
+                    await tx.insert(users).values({
+                        id: expectedUserId,
+                        username: expectedUsername,
+                        displayName: expectedUsername,
+                        currentChallenge: null, // Clear challenge
+                    });
+                    user = { id: expectedUserId, username: expectedUsername } as any;
+                } else {
+                    // Ensure challenge is cleared for existing user too
+                    await tx.update(users).set({ currentChallenge: null }).where(eq(users.id, user.id));
+                }
+
+                // 2. Save authenticator
+                await tx.insert(authenticators).values({
+                    id: uuidv4(),
+                    userId: user!.id,
+                    credentialID: credentialID,
+                    credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+                    counter: counter,
+                    transports: response.response.transports?.join(",") || "",
+                });
             });
 
-            // Clear challenge
-            await db.update(users).set({ currentChallenge: null }).where(eq(users.id, user.id));
-
-            return Result.ok({ verified: true, userId: user.id });
+            return Result.ok({ verified: true, userId: expectedUserId });
         }
 
         return Result.fail("Verification failed");
@@ -143,7 +155,8 @@ export class AuthService {
                 type: "public-key",
             })),
             userVerification: "preferred",
-            timeout: 300000, // 5 minutes
+            userVerification: "preferred",
+            timeout: 60000, // 60 seconds
         });
 
         // We need to store the challenge somewhere. 
@@ -154,7 +167,8 @@ export class AuthService {
         // If usernameless, we rely on signed cookie strategy (will implement in controller).
 
         if (user) {
-            await db.update(users).set({ currentChallenge: options.challenge }).where(eq(users.id, user.id));
+            // No need to store challenge in DB anymore
+            // await db.update(users).set({ currentChallenge: options.challenge }).where(eq(users.id, user.id));
         }
 
         return Result.ok(options);
@@ -178,14 +192,12 @@ export class AuthService {
         const user = await db.query.users.findFirst({ where: eq(users.id, authenticator.userId) });
         if (!user) throw new AppError("User not found", "AUTH_ERROR", 400);
 
-        // Determine expected challenge: either from User DB (if username flow) or Cookie (if usernameless)
-        let expectedChallenge = user.currentChallenge;
-        if (!expectedChallenge && challengeFromCookie) {
-            expectedChallenge = challengeFromCookie;
-        }
+        // Determine expected challenge: Strictly from Cookie (Stateless)
+        // We previously fell back to DB, but that is prone to race conditions and inconsistencies
+        const expectedChallenge = challengeFromCookie;
 
         if (!expectedChallenge) {
-            throw new AppError("Challenge not found", "AUTH_ERROR", 400);
+            throw new AppError("Challenge not found or expired", "AUTH_ERROR", 400);
         }
 
         const verification = await verifyAuthenticationResponse({
