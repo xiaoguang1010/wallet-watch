@@ -500,7 +500,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                             </div>
                                         </div>
 
-                                        {mainToken && (
+                                        {/* 在“所有分组 / 汇总”视图中，mainToken 会与 Tokens 列表重复，隐藏以减少冗余 */}
+                                        {mainToken && !isAllCasesView && (
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <TokenLogo symbol={mainToken.symbol} size={20} className="shrink-0" />
