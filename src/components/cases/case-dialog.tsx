@@ -42,9 +42,10 @@ interface CaseDialogProps {
     trigger?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    parentId?: string | null; // For creating subfolder
 }
 
-export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange }: CaseDialogProps) {
+export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange, parentId }: CaseDialogProps) {
     const t = useTranslations('Dashboard');
     const [internalOpen, setInternalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,6 +58,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
         defaultValues: {
             name: '',
             description: '',
+            parentId: parentId || null,
             addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
         },
     });
@@ -70,11 +72,12 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                 form.reset({
                     name: '',
                     description: '',
+                    parentId: parentId || null,
                     addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
                 });
             }
         }
-    }, [isOpen, mode, initialData, form]);
+    }, [isOpen, mode, initialData, parentId, form]);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,

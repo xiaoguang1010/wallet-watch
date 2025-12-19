@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
-// Zod Schema for Create Case
+// Zod Schema for Create Folder (Case)
 export const createCaseSchema = z.object({
-    name: z.string().min(1, "Case name is required").max(100),
+    name: z.string().min(1, "Folder name is required").max(100),
     description: z.string().optional(),
+    parentId: z.string().uuid().optional().nullable(), // Parent folder ID
     addresses: z.array(z.object({
         address: z.string().min(1, "Address is required"),
         chain: z.enum(["BTC", "ETH", "TRON"]),

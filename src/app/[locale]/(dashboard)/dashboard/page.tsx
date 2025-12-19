@@ -1,16 +1,16 @@
 import { getTranslations } from 'next-intl/server';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Activity, ArrowUpRight } from "lucide-react";
-import { getUserCases } from '@/modules/cases/cases.actions';
+import { getUserCasesTree } from '@/modules/cases/cases.actions';
 import { DashboardClient } from './dashboard-client';
 
 export default async function DashboardPage() {
     const t = await getTranslations('DashboardOverview');
-    const userCases = await getUserCases();
+    const folderTree = await getUserCasesTree();
 
     return (
         <>
-            <DashboardClient hasGroups={userCases.length > 0} />
+            <DashboardClient hasGroups={folderTree.length > 0} />
             <div className="space-y-6 animate-in fade-in duration-500">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>

@@ -21,18 +21,45 @@ export async function createCaseAction(input: CreateCaseInput) {
     if (!val.success) {
         return { error: val.error.format() };
     }
-    const { name, description, addresses } = val.data;
+    const { name, description, addresses, parentId } = val.data;
 
     const caseId = uuidv4();
 
     try {
+        // Determine level based on parent
+        let level = 1;
+        let parentFolder = null;
+
+        if (parentId) {
+            // Validate parent exists and belongs to user
+            parentFolder = await db.query.cases.findFirst({
+                where: and(
+                    eq(cases.id, parentId),
+                    eq(cases.userId, user.id)
+                ),
+            });
+
+            if (!parentFolder) {
+                return { error: "Parent folder not found or unauthorized" };
+            }
+
+            // Check depth limit (max 3 levels)
+            if (parentFolder.level >= 3) {
+                return { error: "Folder depth cannot exceed 3 levels" };
+            }
+
+            level = parentFolder.level + 1;
+        }
+
         await db.transaction(async (tx) => {
-            // 1. Create Case
+            // 1. Create Folder
             await tx.insert(cases).values({
                 id: caseId,
                 userId: user.id,
                 name,
                 description,
+                parentId: parentId || null,
+                level,
                 status: 'active',
             });
 
@@ -53,11 +80,12 @@ export async function createCaseAction(input: CreateCaseInput) {
         revalidatePath('/dashboard');
         return { success: true, caseId };
     } catch (error) {
-        console.error("Failed to create case:", error);
-        return { error: "Failed to create case" };
+        console.error("Failed to create folder:", error);
+        return { error: "Failed to create folder" };
     }
 }
 
+// Get all user folders as flat list (for tree building)
 export async function getUserCases() {
     const user = await getCurrentUser();
     if (!user) return [];
@@ -66,6 +94,63 @@ export async function getUserCases() {
         where: eq(cases.userId, user.id),
         orderBy: [desc(cases.createdAt)],
     });
+}
+
+// Build tree structure from flat list
+export type FolderNode = {
+    id: string;
+    name: string;
+    level: number;
+    parentId: string | null;
+    children: FolderNode[];
+    description: string | null;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+export async function getUserCasesTree(): Promise<FolderNode[]> {
+    const user = await getCurrentUser();
+    if (!user) return [];
+
+    const folders = await db.query.cases.findMany({
+        where: eq(cases.userId, user.id),
+        orderBy: [desc(cases.createdAt)],
+    });
+
+    // Build tree
+    const folderMap = new Map<string, FolderNode>();
+    const rootFolders: FolderNode[] = [];
+
+    // First pass: create all nodes
+    folders.forEach(folder => {
+        folderMap.set(folder.id, {
+            id: folder.id,
+            name: folder.name,
+            level: folder.level,
+            parentId: folder.parentId,
+            description: folder.description,
+            status: folder.status,
+            createdAt: folder.createdAt,
+            updatedAt: folder.updatedAt,
+            children: [],
+        });
+    });
+
+    // Second pass: build tree structure
+    folders.forEach(folder => {
+        const node = folderMap.get(folder.id)!;
+        if (folder.parentId) {
+            const parent = folderMap.get(folder.parentId);
+            if (parent) {
+                parent.children.push(node);
+            }
+        } else {
+            rootFolders.push(node);
+        }
+    });
+
+    return rootFolders;
 }
 
 export async function getCaseDetails(caseId: string) {
@@ -138,7 +223,7 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
     if (!val.success) {
         return { error: val.error.format() };
     }
-    const { name, description, addresses } = val.data;
+    const { name, description, addresses, parentId } = val.data;
 
     try {
         const existing = await db.query.cases.findFirst({
@@ -146,14 +231,46 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
         });
 
         if (!existing || existing.userId !== user.id) {
-            return { error: "Case not found or unauthorized" };
+            return { error: "Folder not found or unauthorized" };
+        }
+
+        // If parentId is being changed, validate the new parent
+        let level = existing.level;
+        if (parentId !== undefined && parentId !== existing.parentId) {
+            if (parentId) {
+                const parentFolder = await db.query.cases.findFirst({
+                    where: and(
+                        eq(cases.id, parentId),
+                        eq(cases.userId, user.id)
+                    ),
+                });
+
+                if (!parentFolder) {
+                    return { error: "Parent folder not found or unauthorized" };
+                }
+
+                if (parentFolder.level >= 3) {
+                    return { error: "Folder depth cannot exceed 3 levels" };
+                }
+
+                // Check if moving to a child (circular reference)
+                if (parentId === caseId) {
+                    return { error: "Cannot move folder to itself" };
+                }
+
+                level = parentFolder.level + 1;
+            } else {
+                level = 1; // Moving to root
+            }
         }
 
         await db.transaction(async (tx) => {
-            // 1. Update Case Details
+            // 1. Update Folder Details
             await tx.update(cases).set({
                 name,
                 description,
+                parentId: parentId || null,
+                level,
                 updatedAt: new Date(),
             }).where(eq(cases.id, caseId));
 
@@ -177,7 +294,7 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
         revalidatePath(`/dashboard/cases/${caseId}`);
         return { success: true };
     } catch (error) {
-        console.error("Failed to update case:", error);
-        return { error: "Failed to update case" };
+        console.error("Failed to update folder:", error);
+        return { error: "Failed to update folder" };
     }
 }

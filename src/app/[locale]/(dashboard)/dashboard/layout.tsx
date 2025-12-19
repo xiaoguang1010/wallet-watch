@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { logout, getCurrentUser } from "@/modules/auth/auth.actions";
 import { CaseDialog } from '@/components/cases/case-dialog';
-import { CaseSidebarItem } from '@/components/cases/case-sidebar-item';
-import { getUserCases } from '@/modules/cases/cases.actions';
+import { getUserCasesTree } from '@/modules/cases/cases.actions';
+import { LayoutClient } from './layout-client';
 
 export default async function DashboardLayout({
     children,
@@ -32,7 +32,7 @@ export default async function DashboardLayout({
     }
 
     const t = await getTranslations('Dashboard');
-    const userCases = await getUserCases();
+    const folderTree = await getUserCasesTree();
 
     return (
         <div className="flex min-h-screen bg-muted/20">
@@ -59,9 +59,7 @@ export default async function DashboardLayout({
                     <CaseDialog mode="create" />
 
                     <div className="space-y-1 mt-1">
-                        {userCases.map((c) => (
-                            <CaseSidebarItem key={c.id} caseId={c.id} name={c.name} />
-                        ))}
+                        <LayoutClient folders={folderTree} />
                     </div>
 
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
