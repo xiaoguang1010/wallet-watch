@@ -238,7 +238,7 @@ export default function TestBalancePage() {
                                                         <span className="text-sm text-muted-foreground">
                                                             {token.usdValueFormatted.startsWith('<') 
                                                                 ? token.usdValueFormatted 
-                                                                : `$${parseFloat(token.usdValue || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                                : `$${(token.usdValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                                         </span>
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">

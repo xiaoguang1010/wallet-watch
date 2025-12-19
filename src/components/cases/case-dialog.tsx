@@ -42,10 +42,10 @@ interface CaseDialogProps {
     trigger?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
-    parentId?: string | null; // For creating subfolder
+    onSuccess?: () => void; // 保存成功后的回调
 }
 
-export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange, parentId }: CaseDialogProps) {
+export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange, onSuccess }: CaseDialogProps) {
     const t = useTranslations('Dashboard');
     const [internalOpen, setInternalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +54,11 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
     const setIsOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen;
 
     const form = useForm<CreateCaseInput>({
-        resolver: zodResolver(createCaseSchema),
+        resolver: zodResolver(createCaseSchema) as any, // Type workaround for zodResolver
         defaultValues: {
             name: '',
             description: '', // Always use empty string, never null
-            parentId: parentId || null,
+            parentId: null,
             addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
         },
     });
@@ -75,12 +75,12 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                 form.reset({
                     name: '',
                     description: '',
-                    parentId: parentId || null,
+                    parentId: null,
                     addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
                 });
             }
         }
-    }, [isOpen, mode, initialData, parentId, form]);
+    }, [isOpen, mode, initialData, form]);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -103,7 +103,14 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
             } else {
                 toast.success(mode === 'create' ? "Group created successfully" : "Group updated successfully");
                 setIsOpen(false);
-                if (mode === 'create') form.reset();
+                if (mode === 'create') {
+                    form.reset();
+                } else {
+                    // 编辑模式下，保存成功后触发回调
+                    if (onSuccess) {
+                        onSuccess();
+                    }
+                }
             }
         } catch (error) {
             toast.error(mode === 'create' ? "Failed to create group" : "Failed to update group");

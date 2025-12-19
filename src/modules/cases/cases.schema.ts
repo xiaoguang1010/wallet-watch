@@ -9,7 +9,7 @@ export const createCaseSchema = z.object({
         address: z.string().min(1, "Address is required"),
         chain: z.enum(["BTC", "ETH", "TRON"]),
         network: z.enum(["L1", "L2"]).optional(),
-    })).optional().default([])
+    })).default([])
         .refine((items) => {
             if (!items || items.length === 0) return true; // Allow empty
             const seen = new Set();
