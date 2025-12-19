@@ -21,8 +21,19 @@ export function DashboardClient({ hasGroups }: DashboardClientProps) {
         }
     }, [hasGroups]);
 
+    const handleTriggerCreateRoot = () => {
+        // 发送自定义事件，让侧边栏打开内联输入
+        window.dispatchEvent(new CustomEvent('trigger-create-root-folder'));
+    };
+
     if (hasGroups) return null;
 
-    return <EmptyStateGuide open={showGuide} onOpenChange={setShowGuide} />;
+    return (
+        <EmptyStateGuide 
+            open={showGuide} 
+            onOpenChange={setShowGuide} 
+            onTriggerCreateRoot={handleTriggerCreateRoot}
+        />
+    );
 }
 
