@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Loader2, Wallet } from 'lucide-react';
+import { Edit, Trash2, Loader2, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
 import { deleteCaseAction } from '@/modules/cases/cases.actions';
 import { CaseDialog } from './case-dialog';
 import { toast } from 'sonner';
@@ -51,6 +51,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
     const [totalAssets, setTotalAssets] = useState(0);
     const [assetDistribution, setAssetDistribution] = useState<Array<{ name: string; value: number }>>([]);
     const [selectedToken, setSelectedToken] = useState<{ walletAddress: string; address: string; chain: string; token: Token } | null>(null);
+    const [expandedTokenSections, setExpandedTokenSections] = useState<Set<string>>(new Set());
 
     if (!data) return <div>{t('not_found')}</div>;
 
@@ -63,6 +64,15 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
             token 
         });
         console.log('Token clicked:', { addressId, walletAddress, chain, token });
+    };
+
+    const toggleTokenSection = (addressId: string) => {
+        setExpandedTokenSections(prev => {
+            const next = new Set(prev);
+            if (next.has(addressId)) next.delete(addressId);
+            else next.add(addressId);
+            return next;
+        });
     };
 
     // Fetch balances function (extracted for reuse)
@@ -260,7 +270,8 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         id: data.id,
         name: data.name,
         description: data.description || '',
-        addresses: data.addresses || [],
+        // 用 directAddresses（仅当前分组的地址）来编辑，避免把子分组地址写回当前分组导致重复展示
+        addresses: data.directAddresses || data.addresses || [],
     };
 
     // 判断是否为"所有分组"视图（虚拟汇总视图，不显示编辑/删除按钮）
@@ -448,9 +459,10 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {data.addresses.map((addr: any) => {
                         const balance = addressBalances.get(addr.id);
-                        const mainToken = balance?.tokens?.[0] ?? null;
                         const chainUpper = (addr.chain?.toUpperCase?.() ?? String(addr.chain || '').toUpperCase()) as string;
                         const supportsTransactions = chainUpper === 'ETH' || chainUpper === 'BTC';
+                        const addressId = String(addr.id);
+                        const tokensExpanded = expandedTokenSections.has(addressId);
 
                         return (
                             <div key={addr.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -458,11 +470,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                            {isAllCasesView ? (
-                                                <Wallet className="w-4 h-4 text-gray-600" />
-                                            ) : (
-                                                <span className="text-sm font-medium text-gray-600">{String(addr.chain || '').charAt(0)}</span>
-                                            )}
+                                            <Wallet className="w-4 h-4 text-gray-600" />
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">{data.name}</span>
                                     </div>
@@ -473,9 +481,6 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                 <div className="mb-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs text-gray-500">{addr.chain} · {addr.network}</span>
-                                        {!isAllCasesView && (
-                                            <span className="text-xs text-gray-400">#{addr.id}</span>
-                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-mono text-gray-600 truncate flex-1">{addr.address}</span>
@@ -506,65 +511,68 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                             </div>
                                         </div>
 
-                                        {/* 在“所有分组 / 汇总”视图中，mainToken 会与 Tokens 列表重复，隐藏以减少冗余 */}
-                                        {mainToken && !isAllCasesView && (
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <TokenLogo symbol={mainToken.symbol} size={20} className="shrink-0" />
-                                                    <div>
-                                                        <div className="text-sm font-medium text-gray-900">{mainToken.symbol}</div>
-                                                        <div className="text-xs text-gray-500">{mainToken.formattedBalance}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-sm font-semibold text-gray-900">
-                                                        $ {mainToken.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
                                         {balance.tokens?.length > 0 && (
                                             <div className="pt-2 border-t border-gray-100">
-                                                <div className="text-xs text-gray-500 mb-2">Tokens</div>
-                                                <div className="space-y-1">
-                                                    {balance.tokens.map((token, index) => {
-                                                        const key = `${token.symbol}-${index}`;
-                                                        const row = (
-                                                            <>
-                                                                <span className="flex items-center gap-2 font-medium text-gray-700">
-                                                                    <TokenLogo symbol={token.symbol} size={16} className="shrink-0" />
-                                                                    {token.symbol}
-                                                                    {!supportsTransactions && (
-                                                                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">即将支持</span>
-                                                                    )}
-                                                                </span>
-                                                                <span className="text-gray-600">
-                                                                    ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                </span>
-                                                            </>
-                                                        );
-
-                                                        return supportsTransactions ? (
-                                                            <button
-                                                                key={key}
-                                                                onClick={() => handleTokenClick(addr.id, addr.address, addr.chain, token)}
-                                                                className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors cursor-pointer"
-                                                                type="button"
-                                                            >
-                                                                {row}
-                                                            </button>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="text-xs text-gray-500">
+                                                        Tokens ({balance.tokens.length})
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="text-xs text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
+                                                        onClick={() => toggleTokenSection(addressId)}
+                                                        aria-expanded={tokensExpanded}
+                                                        aria-controls={`tokens-${addressId}`}
+                                                    >
+                                                        {tokensExpanded ? 'Hide' : 'Show all'}
+                                                        {tokensExpanded ? (
+                                                            <ChevronUp className="w-3.5 h-3.5" />
                                                         ) : (
-                                                            <div
-                                                                key={key}
-                                                                className="w-full flex items-center justify-between px-2 py-1.5 text-xs"
-                                                                title={`${addr.chain} 交易查询功能即将支持`}
-                                                            >
-                                                                {row}
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            <ChevronDown className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
                                                 </div>
+
+                                                {tokensExpanded && (
+                                                    <div id={`tokens-${addressId}`} className="space-y-1">
+                                                        {balance.tokens.map((token, index) => {
+                                                            const key = `${token.symbol}-${index}`;
+                                                            const row = (
+                                                                <>
+                                                                    <span className="flex items-center gap-2 font-medium text-gray-700">
+                                                                        <TokenLogo symbol={token.symbol} size={16} className="shrink-0" />
+                                                                        {token.symbol}
+                                                                        {!supportsTransactions && (
+                                                                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">即将支持</span>
+                                                                        )}
+                                                                    </span>
+                                                                    <span className="text-gray-600">
+                                                                        ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </>
+                                                            );
+
+                                                            return supportsTransactions ? (
+                                                                <button
+                                                                    key={key}
+                                                                    onClick={() => handleTokenClick(addr.id, addr.address, addr.chain, token)}
+                                                                    className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                                                                    type="button"
+                                                                >
+                                                                    {row}
+                                                                </button>
+                                                            ) : (
+                                                                <div
+                                                                    key={key}
+                                                                    className="w-full flex items-center justify-between px-2 py-1.5 text-xs"
+                                                                    title={`${addr.chain} 交易查询功能即将支持`}
+                                                                >
+                                                                    {row}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

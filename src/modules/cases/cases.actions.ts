@@ -11,6 +11,32 @@ import { eq, desc, and, inArray } from 'drizzle-orm';
 import { redirect } from '@/i18n/routing';
 import { createCaseSchema, CreateCaseInput } from './cases.schema';
 
+function normalizeAddressForKey(chain: string, address: string) {
+    const trimmed = (address || '').trim();
+    const upper = (chain || '').toUpperCase();
+    // EVM addresses are case-insensitive; keep others as-is to avoid breaking base58 formats.
+    return upper === 'ETH' ? trimmed.toLowerCase() : trimmed;
+}
+
+function dedupeAddresses(addresses: Array<{ address: string; chain: string; network?: string | null }>) {
+    const seen = new Set<string>();
+    const result: Array<{ address: string; chain: string; network?: string | null }> = [];
+
+    for (const addr of addresses) {
+        const chain = (addr.chain || '').trim();
+        const network = (addr.network ?? null) as string | null;
+        const address = (addr.address || '').trim();
+        if (!chain || !address) continue;
+
+        const key = `${chain.toUpperCase()}|${network ?? ''}|${normalizeAddressForKey(chain, address)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push({ address, chain, network });
+    }
+
+    return result;
+}
+
 export async function createCaseAction(input: CreateCaseInput) {
     const userResult = await getCurrentUser();
     if (!userResult.success || !userResult.data) {
@@ -65,7 +91,8 @@ export async function createCaseAction(input: CreateCaseInput) {
 
         // Insert addresses if provided
         if (addresses && addresses.length > 0) {
-            const addressValues = addresses.map(addr => ({
+            const uniqueAddresses = dedupeAddresses(addresses);
+            const addressValues = uniqueAddresses.map(addr => ({
                 id: uuidv4(),
                 caseId,
                 address: addr.address,
@@ -351,9 +378,14 @@ export async function getCaseDetails(caseId: string) {
     const childCaseIds = await getAllChildCaseIds(caseId);
     const allCaseIds = [caseId, ...childCaseIds];
 
-    // 获取该 case 及其所有子文件夹的所有地址
+    // 获取该 case 及其所有子文件夹的所有地址（用于 dashboard 展示）
     const addresses = await db.query.monitoredAddresses.findMany({
         where: inArray(monitoredAddresses.caseId, allCaseIds),
+    });
+
+    // 仅获取该 case 自己的地址（用于编辑表单，避免把子文件夹地址写回当前 case 导致重复）
+    const directAddresses = await db.query.monitoredAddresses.findMany({
+        where: eq(monitoredAddresses.caseId, caseId),
     });
 
     // Mock Asset Data Calculation
@@ -367,6 +399,7 @@ export async function getCaseDetails(caseId: string) {
     return {
         ...caseData,
         addresses,
+        directAddresses,
         stats: {
             totalAssets,
             addressCount: addresses.length,
@@ -501,7 +534,8 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
 
             // Insert new addresses
             if (addresses.length > 0) {
-                const addressValues = addresses.map(addr => ({
+                const uniqueAddresses = dedupeAddresses(addresses);
+                const addressValues = uniqueAddresses.map(addr => ({
                     id: uuidv4(),
                     caseId,
                     address: addr.address,
