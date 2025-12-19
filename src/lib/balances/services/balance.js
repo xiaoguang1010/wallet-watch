@@ -53,7 +53,6 @@ function calculateTokenUSDValue(balance, price, decimal) {
   if (!balance || balance === '0' || !price) {
     return null;
   }
-
   const amount = fromDecimalToUnit(balance, decimal);
   const value = amount.multipliedBy(price);
   return formatWithMiniValue(value.toString(), '0.01', 2);
@@ -99,7 +98,6 @@ async function getChainBalance(address, chainName, caip2, getTokenListFn) {
       const price = priceData.price || 0;
       const formattedBalance = formatBalance(balance, decimals);
       const usdValue = calculateTokenUSDValue(balance, price, decimals);
-
       return {
         symbol: token.symbol || token.displaySymbol || 'UNKNOWN',
         name: token.name || token.displayName || 'Unknown Token',
