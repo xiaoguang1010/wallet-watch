@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Loader2, Wallet } from 'lucide-react';
 import { deleteCaseAction } from '@/modules/cases/cases.actions';
 import { CaseDialog } from './case-dialog';
 import { toast } from 'sonner';
@@ -458,7 +458,11 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                            <span className="text-sm font-medium text-gray-600">{String(addr.chain || '').charAt(0)}</span>
+                                            {isAllCasesView ? (
+                                                <Wallet className="w-4 h-4 text-gray-600" />
+                                            ) : (
+                                                <span className="text-sm font-medium text-gray-600">{String(addr.chain || '').charAt(0)}</span>
+                                            )}
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">{data.name}</span>
                                     </div>
@@ -469,7 +473,9 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                 <div className="mb-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs text-gray-500">{addr.chain} · {addr.network}</span>
-                                        <span className="text-xs text-gray-400">#{addr.id}</span>
+                                        {!isAllCasesView && (
+                                            <span className="text-xs text-gray-400">#{addr.id}</span>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-mono text-gray-600 truncate flex-1">{addr.address}</span>
