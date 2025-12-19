@@ -50,7 +50,10 @@ export async function getGroup1Balances() {
           btc: result.chains.btc ? {
             chain: 'BTC',
             address: WALLET_ADDRESSES.btc,
-            tokens: result.chains.btc.tokens || [],
+            tokens: result.chains.btc.tokens && result.chains.btc.tokens.length > 0 
+              ? result.chains.btc.tokens 
+              : (result.chains.btc.allTokens || []).filter((t: any) => parseFloat(t.balance || '0') > 0),
+            allTokens: result.chains.btc.allTokens || [],
             totalValue: result.chains.btc.totalValue || 0,
             mainToken: result.chains.btc.tokens?.find((t: any) => t.symbol === 'BTC') || 
                       result.chains.btc.allTokens?.find((t: any) => t.symbol === 'BTC') || null,
@@ -59,6 +62,7 @@ export async function getGroup1Balances() {
             chain: 'ETH',
             address: WALLET_ADDRESSES.eth,
             tokens: result.chains.eth.tokens || [],
+            allTokens: result.chains.eth.allTokens || [],
             totalValue: result.chains.eth.totalValue || 0,
             mainToken: result.chains.eth.tokens?.find((t: any) => t.symbol === 'ETH') || 
                       result.chains.eth.allTokens?.find((t: any) => t.symbol === 'ETH') || null,
@@ -67,6 +71,7 @@ export async function getGroup1Balances() {
             chain: 'TRON',
             address: WALLET_ADDRESSES.tron,
             tokens: result.chains.tron.tokens || [],
+            allTokens: result.chains.tron.allTokens || [],
             totalValue: result.chains.tron.totalValue || 0,
             mainToken: result.chains.tron.tokens?.find((t: any) => t.symbol === 'TRX') || 
                       result.chains.tron.allTokens?.find((t: any) => t.symbol === 'TRX') || null,
