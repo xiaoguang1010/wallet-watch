@@ -5,21 +5,38 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus } from 'lucide-reac
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { InlineFolderInput } from './inline-folder-input';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
 interface FolderTreeProps {
     folders: FolderNode[];
-    onCreateSubfolder?: (parentId: string) => void;
+    onCreateSubfolder?: (parentId: string | null, name: string) => void;
+    onAddAddresses?: (folderId: string) => void;
+    showCreateRoot?: boolean;
+    onCancelCreateRoot?: () => void;
 }
 
-export function FolderTree({ folders, onCreateSubfolder }: FolderTreeProps) {
+export function FolderTree({ folders, onCreateSubfolder, onAddAddresses, showCreateRoot, onCancelCreateRoot }: FolderTreeProps) {
+    const handleCreateRoot = (name: string) => {
+        onCreateSubfolder?.(null, name);
+    };
+
     return (
         <div className="space-y-1">
+            {showCreateRoot && (
+                <InlineFolderInput
+                    depth={0}
+                    onSave={handleCreateRoot}
+                    onCancel={onCancelCreateRoot || (() => {})}
+                    placeholder="输入一级分组名称..."
+                />
+            )}
             {folders.map((folder) => (
                 <FolderTreeNode
                     key={folder.id}
                     folder={folder}
                     onCreateSubfolder={onCreateSubfolder}
+                    onAddAddresses={onAddAddresses}
                 />
             ))}
         </div>
@@ -29,12 +46,14 @@ export function FolderTree({ folders, onCreateSubfolder }: FolderTreeProps) {
 interface FolderTreeNodeProps {
     folder: FolderNode;
     depth?: number;
-    onCreateSubfolder?: (parentId: string) => void;
+    onCreateSubfolder?: (parentId: string | null, name: string) => void;
+    onAddAddresses?: (folderId: string) => void;
 }
 
-function FolderTreeNode({ folder, depth = 0, onCreateSubfolder }: FolderTreeNodeProps) {
+function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses }: FolderTreeNodeProps) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
+    const [showInlineInput, setShowInlineInput] = useState(false);
     const params = useParams();
     const router = useRouter();
     const locale = params.locale as string;
@@ -43,6 +62,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder }: FolderTreeNode
     const hasChildren = folder.children.length > 0;
     const isActive = currentCaseId === folder.id;
     const canHaveChildren = folder.level < 3; // Only levels 1 and 2 can have children
+    const isLevel3 = folder.level === 3; // Level 3 folders can only add addresses
 
     const handleClick = () => {
         router.push(`/${locale}/dashboard/cases/${folder.id}`);
@@ -57,7 +77,23 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder }: FolderTreeNode
 
     const handleCreateSubfolder = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onCreateSubfolder?.(folder.id);
+        if (isLevel3) {
+            // Level 3: open address dialog
+            onAddAddresses?.(folder.id);
+        } else {
+            // Level 1 & 2: show inline input
+            setShowInlineInput(true);
+            setIsExpanded(true); // Auto expand when creating child
+        }
+    };
+
+    const handleSaveInlineFolder = (name: string) => {
+        onCreateSubfolder?.(folder.id, name);
+        setShowInlineInput(false);
+    };
+
+    const handleCancelInlineFolder = () => {
+        setShowInlineInput(false);
     };
 
     return (
@@ -103,28 +139,41 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder }: FolderTreeNode
                 {/* Folder Name */}
                 <span className="flex-1 truncate">{folder.name}</span>
 
-                {/* Add Subfolder Button (only for level 1 and 2) */}
-                {canHaveChildren && isHovered && onCreateSubfolder && (
+                {/* Add Button (subfolder for level 1&2, addresses for level 3) */}
+                {isHovered && (onCreateSubfolder || onAddAddresses) && (
                     <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={handleCreateSubfolder}
+                        title={isLevel3 ? "添加监控地址" : "创建子目录"}
                     >
                         <Plus className="w-3 h-3" />
                     </Button>
                 )}
             </div>
 
-            {/* Children */}
-            {hasChildren && isExpanded && (
+            {/* Children & Inline Input */}
+            {isExpanded && (
                 <div>
-                    {folder.children.map((child) => (
+                    {/* Inline input for creating subfolder */}
+                    {showInlineInput && (
+                        <InlineFolderInput
+                            depth={depth + 1}
+                            onSave={handleSaveInlineFolder}
+                            onCancel={handleCancelInlineFolder}
+                            placeholder={`输入${folder.level === 1 ? '二' : '三'}级目录名称...`}
+                        />
+                    )}
+                    
+                    {/* Existing children */}
+                    {hasChildren && folder.children.map((child) => (
                         <FolderTreeNode
                             key={child.id}
                             folder={child}
                             depth={depth + 1}
                             onCreateSubfolder={onCreateSubfolder}
+                            onAddAddresses={onAddAddresses}
                         />
                     ))}
                 </div>

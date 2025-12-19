@@ -9,8 +9,9 @@ export const createCaseSchema = z.object({
         address: z.string().min(1, "Address is required"),
         chain: z.enum(["BTC", "ETH", "TRON"]),
         network: z.enum(["L1", "L2"]).optional(),
-    })).min(1, "At least one address is required")
+    })).optional().default([])
         .refine((items) => {
+            if (!items || items.length === 0) return true; // Allow empty
             const seen = new Set();
             for (const item of items) {
                 const key = `${item.address}-${item.chain}-${item.network || 'L1'}`;
@@ -20,6 +21,7 @@ export const createCaseSchema = z.object({
             return true;
         }, { message: "Duplicate address entry (Address + Chain + Network must be unique)" })
         .superRefine((items, ctx) => {
+            if (!items || items.length === 0) return; // Skip validation if empty
             items.forEach((item, index) => {
                 let isValid = true;
                 if (item.chain === 'ETH') {

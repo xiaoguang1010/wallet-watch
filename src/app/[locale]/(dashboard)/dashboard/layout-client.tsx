@@ -2,41 +2,85 @@
 
 import { useState } from 'react';
 import { FolderTree } from '@/components/cases/folder-tree';
-import { CaseDialog } from '@/components/cases/case-dialog';
+import { AddAddressDialog } from '@/components/cases/add-address-dialog';
+import { createCaseAction } from '@/modules/cases/cases.actions';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
 interface LayoutClientProps {
     folders: FolderNode[];
+    showCreateRoot: boolean;
+    onCancelCreateRoot: () => void;
 }
 
-export function LayoutClient({ folders }: LayoutClientProps) {
-    const [createDialogOpen, setCreateDialogOpen] = useState(false);
-    const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot }: LayoutClientProps) {
+    const router = useRouter();
+    const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState<{ id: string; name: string } | null>(null);
 
-    const handleCreateSubfolder = (parentId: string) => {
-        setSelectedParentId(parentId);
-        setCreateDialogOpen(true);
+    const handleCreateFolder = async (parentId: string | null, name: string) => {
+        try {
+            const result = await createCaseAction({
+                name,
+                parentId: parentId,
+                addresses: [], // Create folder without addresses
+            });
+
+            if (result.error) {
+                toast.error(typeof result.error === 'string' ? result.error : "创建失败");
+            } else {
+                toast.success(`${parentId ? '子目录' : '分组'}创建成功`);
+                router.refresh();
+            }
+        } catch (error) {
+            toast.error("创建失败");
+        }
     };
 
-    const handleDialogClose = (open: boolean) => {
-        setCreateDialogOpen(open);
+    const handleAddAddresses = (folderId: string) => {
+        // Find folder name from tree
+        const findFolder = (nodes: FolderNode[]): FolderNode | null => {
+            for (const node of nodes) {
+                if (node.id === folderId) return node;
+                const found = findFolder(node.children);
+                if (found) return found;
+            }
+            return null;
+        };
+
+        const folder = findFolder(folders);
+        if (folder) {
+            setSelectedFolder({ id: folder.id, name: folder.name });
+            setAddressDialogOpen(true);
+        }
+    };
+
+    const handleCloseAddressDialog = (open: boolean) => {
+        setAddressDialogOpen(open);
         if (!open) {
-            setSelectedParentId(null);
+            setSelectedFolder(null);
+            router.refresh();
         }
     };
 
     return (
         <>
-            <FolderTree folders={folders} onCreateSubfolder={handleCreateSubfolder} />
+            <FolderTree 
+                folders={folders} 
+                onCreateSubfolder={handleCreateFolder}
+                onAddAddresses={handleAddAddresses}
+                showCreateRoot={showCreateRoot}
+                onCancelCreateRoot={onCancelCreateRoot}
+            />
             
-            {/* Subfolder creation dialog */}
-            {createDialogOpen && (
-                <CaseDialog
-                    mode="create"
-                    open={createDialogOpen}
-                    onOpenChange={handleDialogClose}
-                    parentId={selectedParentId}
-                    trigger={<></>}
+            {/* Address dialog for level 3 folders */}
+            {selectedFolder && (
+                <AddAddressDialog
+                    folderId={selectedFolder.id}
+                    folderName={selectedFolder.name}
+                    open={addressDialogOpen}
+                    onOpenChange={handleCloseAddressDialog}
                 />
             )}
         </>

@@ -11,9 +11,8 @@ import {
     UserCircle
 } from "lucide-react";
 import { logout, getCurrentUser } from "@/modules/auth/auth.actions";
-import { CaseDialog } from '@/components/cases/case-dialog';
 import { getUserCasesTree } from '@/modules/cases/cases.actions';
-import { LayoutClient } from './layout-client';
+import { LayoutWrapper } from './layout-wrapper';
 
 export default async function DashboardLayout({
     children,
@@ -56,11 +55,8 @@ export default async function DashboardLayout({
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {t('groups')}
                     </div>
-                    <CaseDialog mode="create" />
-
-                    <div className="space-y-1 mt-1">
-                        <LayoutClient folders={folderTree} />
-                    </div>
+                    
+                    <LayoutWrapper folders={folderTree} addGroupText={t('add_group')} />
 
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {t('settings_section')}
