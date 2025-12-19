@@ -5,8 +5,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
+  const startTime = Date.now();
   try {
     const { address } = await params;
+    
+    console.log('[ETH API] Request received for address:', address);
     
     if (!address) {
       return NextResponse.json(
@@ -20,13 +23,19 @@ export async function GET(
 
     const result = await getSingleChainBalance(address, 'ETH');
     
+    const duration = Date.now() - startTime;
+    console.log(`[ETH API] Request completed in ${duration}ms, success: ${result.success}`);
+    
     if (!result.success) {
+      console.error('[ETH API] Error:', result.error);
       return NextResponse.json(result, { status: 500 });
     }
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error('Error in ETH balance API route:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[ETH API] Error after ${duration}ms:`, error.message);
+    console.error('[ETH API] Stack:', error.stack);
     return NextResponse.json(
       {
         success: false,

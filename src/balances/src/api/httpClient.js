@@ -97,12 +97,15 @@ function sendJsonRpcRequest(url, method, params, customHeaders = {}) {
     });
 
     req.on('error', (error) => {
+      console.error('[httpClient] Request error:', error.message);
       reject(error);
     });
 
-    req.setTimeout(30000, () => {
+    // 设置为 8 秒超时，为 Vercel 10 秒限制留出余地
+    req.setTimeout(8000, () => {
+      console.error('[httpClient] Request timeout after 8s for:', url);
       req.destroy();
-      reject(new Error('Request timeout'));
+      reject(new Error('Request timeout after 8s'));
     });
 
     req.write(requestBody);

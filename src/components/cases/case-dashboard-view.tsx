@@ -93,13 +93,20 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                     try {
                         const chain = (addr.chain || '').toLowerCase();
                         const addrController = new AbortController();
-                        const addrTimeoutId = setTimeout(() => addrController.abort(), 30000);
+                        // 降低超时时间到 9 秒，适应 Vercel 10 秒限制
+                        const addrTimeoutId = setTimeout(() => addrController.abort(), 9000);
+                        
+                        console.log(`[Balance Fetch] Starting request for ${chain} address:`, addr.address);
+                        const fetchStartTime = Date.now();
                         
                         const addrResponse = await fetch(`/api/v1/balance/${chain}/${encodeURIComponent(addr.address)}`, {
                             signal: addrController.signal,
                         });
                         
                         clearTimeout(addrTimeoutId);
+                        
+                        const fetchDuration = Date.now() - fetchStartTime;
+                        console.log(`[Balance Fetch] Response received in ${fetchDuration}ms for ${chain} address, status:`, addrResponse.status);
                         
                         if (!addrResponse.ok) {
                             console.warn(`Failed to fetch balance for ${addr.address}:`, addrResponse.status);
