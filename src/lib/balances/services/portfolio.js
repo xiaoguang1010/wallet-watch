@@ -2,18 +2,11 @@
  * 资产组合服务 - 处理多链资产汇总
  */
 
-// 在 Vercel/Next.js 环境中，需要从项目根目录加载 bignumber.js
-let BigNumber;
-try {
-  // 首先尝试正常的 require
-  BigNumber = require('bignumber.js');
-} catch (e) {
-  // 如果失败，尝试从项目根目录的 node_modules 加载
-  const path = require('path');
-  const bignumberPath = path.join(process.cwd(), 'node_modules', 'bignumber.js');
-  BigNumber = require(bignumberPath);
-}
-
+// 在某些打包/运行环境中，require('bignumber.js') 可能返回 { default: BigNumber } 或 { BigNumber: BigNumber }
+const BigNumberImport = require('bignumber.js');
+const BigNumber =
+  (BigNumberImport && (BigNumberImport.default || BigNumberImport.BigNumber)) ||
+  BigNumberImport;
 const { getChainBalance } = require('./balance');
 const btcAPI = require('../api/btc');
 const ethAPI = require('../api/eth');
@@ -24,16 +17,16 @@ const tronAPI = require('../api/tron');
  */
 function calcTotal(assetTokens) {
   let totalValue = new BigNumber(0);
-  
+
   assetTokens.forEach((asset) => {
     const { balance, decimals, price } = asset;
     if (!balance || balance === '0' || !price) return;
-    
+
     const amount = new BigNumber(balance).div(new BigNumber(10).pow(decimals));
     const value = amount.multipliedBy(price);
     totalValue = totalValue.plus(value);
   });
-  
+
   return totalValue.toNumber();
 }
 
@@ -42,7 +35,7 @@ function calcTotal(assetTokens) {
  */
 async function getMultiChainPortfolio(addresses) {
   const { btc, eth, tron } = addresses;
-  
+
   const results = await Promise.allSettled([
     btc ? getChainBalance(btc, 'BITCOIN', btcAPI.BTC_CAIP2, btcAPI.getTokenListByAddress) : Promise.resolve(null),
     eth ? getChainBalance(eth, 'ETHEREUM', ethAPI.ETH_CAIP2, ethAPI.getTokenListByAddress) : Promise.resolve(null),
@@ -72,7 +65,7 @@ async function getMultiChainPortfolio(addresses) {
  */
 async function getSingleChainPortfolio(address, chainType) {
   let getTokenListFn, caip2, chainName;
-  
+
   switch (chainType.toUpperCase()) {
     case 'BTC':
     case 'BITCOIN':
@@ -104,4 +97,5 @@ module.exports = {
   getMultiChainPortfolio,
   getSingleChainPortfolio,
 };
+
 

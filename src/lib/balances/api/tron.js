@@ -1,22 +1,22 @@
 /**
- * Bitcoin API客户端
+ * TRON API客户端
  */
 
 const { sendJsonRpcRequest, API_BASE_URL } = require('./httpClient');
 
 const WALLET_API_URL = `${API_BASE_URL}/v4/jsonrpc`;
-const BTC_CAIP2 = 'bip122:000000000019d6689c085ae165831e93';
+const TRON_CAIP2 = 'tip174:00000000000000001ebf88508a03865c';
 
 /**
- * 获取Bitcoin地址的代币列表（包括余额）
+ * 获取TRON地址的代币列表（包括余额）
  */
 async function getTokenListByAddress(address, riskLevel = 2) {
   const params = [{
     accountAddress: address,
     addressType: null,
-    caip2: BTC_CAIP2,
+    caip2: TRON_CAIP2,
     riskLevel: riskLevel,
-    tokenStandard: ['NATIVE', 'OMNI'],
+    tokenStandard: ['NATIVE', 'TRC20', 'TRC10'],
     position: ['Account'],
   }];
 
@@ -25,6 +25,7 @@ async function getTokenListByAddress(address, riskLevel = 2) {
 
 module.exports = {
   getTokenListByAddress,
-  BTC_CAIP2,
+  TRON_CAIP2,
 };
+
 

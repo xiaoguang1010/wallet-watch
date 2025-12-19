@@ -27,7 +27,7 @@ const DEFAULT_HEADERS = {
  * 生成随机Trace ID
  */
 function generateTraceId() {
-  return Math.random().toString(16).substring(2, 18) + 
+  return Math.random().toString(16).substring(2, 18) +
          Math.random().toString(16).substring(2, 18);
 }
 
@@ -41,7 +41,7 @@ function generateSpanId() {
 /**
  * 发送JSON-RPC请求
  */
-function sendJsonRpcRequest(url, method, params, customHeaders = {}) {
+function sendJsonRpcRequest(url, method, params, customHeaders = {}, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const headers = {
       ...DEFAULT_HEADERS,
@@ -84,7 +84,7 @@ function sendJsonRpcRequest(url, method, params, customHeaders = {}) {
       res.on('end', () => {
         try {
           const response = JSON.parse(data);
-          
+
           if (response.error) {
             reject(new Error(`JSON-RPC Error: ${JSON.stringify(response.error)}`));
           } else {
@@ -97,15 +97,12 @@ function sendJsonRpcRequest(url, method, params, customHeaders = {}) {
     });
 
     req.on('error', (error) => {
-      console.error('[httpClient] Request error:', error.message);
       reject(error);
     });
 
-    // 设置为 8 秒超时，为 Vercel 10 秒限制留出余地
-    req.setTimeout(8000, () => {
-      console.error('[httpClient] Request timeout after 8s for:', url);
+    req.setTimeout(timeoutMs, () => {
       req.destroy();
-      reject(new Error('Request timeout after 8s'));
+      reject(new Error('Request timeout'));
     });
 
     req.write(requestBody);
@@ -118,4 +115,5 @@ module.exports = {
   API_BASE_URL,
   BIZ_API_BASE_URL,
 };
+
 

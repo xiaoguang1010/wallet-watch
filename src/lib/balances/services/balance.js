@@ -2,18 +2,11 @@
  * 余额服务 - 处理余额查询和格式化
  */
 
-// 在 Vercel/Next.js 环境中，需要从项目根目录加载 bignumber.js
-let BigNumber;
-try {
-  // 首先尝试正常的 require
-  BigNumber = require('bignumber.js');
-} catch (e) {
-  // 如果失败，尝试从项目根目录的 node_modules 加载
-  const path = require('path');
-  const bignumberPath = path.join(process.cwd(), 'node_modules', 'bignumber.js');
-  BigNumber = require(bignumberPath);
-}
-
+// 在某些打包/运行环境中，require('bignumber.js') 可能返回 { default: BigNumber } 或 { BigNumber: BigNumber }
+const BigNumberImport = require('bignumber.js');
+const BigNumber =
+  (BigNumberImport && (BigNumberImport.default || BigNumberImport.BigNumber)) ||
+  BigNumberImport;
 const { getPrices } = require('../api/prices');
 
 /**
@@ -45,11 +38,11 @@ function fromDecimalToUnit(balance, decimal) {
 function formatWithMiniValue(value, miniValue = '0.01', decimals = 2) {
   const valueBN = new BigNumber(value);
   const miniBN = new BigNumber(miniValue);
-  
+
   if (valueBN.lt(miniBN)) {
     return '< ' + miniValue;
   }
-  
+
   return valueBN.toFixed(decimals);
 }
 
@@ -60,7 +53,7 @@ function calculateTokenUSDValue(balance, price, decimal) {
   if (!balance || balance === '0' || !price) {
     return null;
   }
-  
+
   const amount = fromDecimalToUnit(balance, decimal);
   const value = amount.multipliedBy(price);
   return formatWithMiniValue(value.toString(), '0.01', 2);
@@ -73,7 +66,7 @@ async function getChainBalance(address, chainName, caip2, getTokenListFn) {
   try {
     // 1. 获取代币列表
     const tokens = await getTokenListFn(address);
-    
+
     if (!tokens || tokens.length === 0) {
       return {
         chain: chainName,
@@ -106,7 +99,7 @@ async function getChainBalance(address, chainName, caip2, getTokenListFn) {
       const price = priceData.price || 0;
       const formattedBalance = formatBalance(balance, decimals);
       const usdValue = calculateTokenUSDValue(balance, price, decimals);
-      
+
       return {
         symbol: token.symbol || token.displaySymbol || 'UNKNOWN',
         name: token.name || token.displayName || 'Unknown Token',
@@ -160,4 +153,5 @@ module.exports = {
   calculateTokenUSDValue,
   getChainBalance,
 };
+
 

@@ -3,11 +3,10 @@
  * 这个文件在服务端运行，可以直接使用 CommonJS require
  */
 
-import path from 'path';
 import { createRequire } from 'module';
 
-// 在 Next.js 中，使用 createRequire 和 process.cwd() 来加载 CommonJS 模块
-const require = createRequire(process.cwd() + '/package.json');
+// 用 createRequire(import.meta.url) + 静态字符串路径加载 CommonJS 模块，便于 Next/Vercel 正确打包依赖
+const require = createRequire(import.meta.url);
 
 const WALLET_ADDRESSES = {
   btc: 'bc1qq2mvrp4g3ugd424dw4xv53rgsf8szkrv853jrc',
@@ -21,10 +20,8 @@ let portfolioModule: any = null;
 
 function getPortfolioService() {
   if (!portfolioModule) {
-    // 使用 process.cwd() 获取项目根目录，然后构建路径
-    const portfolioPath = path.join(process.cwd(), 'src', 'balances', 'src', 'services', 'portfolio.js');
-    console.log('[balance-service] Loading portfolio module from:', portfolioPath);
-    portfolioModule = require(portfolioPath);
+    // 注意：这里必须是静态字符串路径，避免部署时依赖没被 trace 进 Serverless Function
+    portfolioModule = require('./balances/services/portfolio.js');
   }
   return portfolioModule;
 }

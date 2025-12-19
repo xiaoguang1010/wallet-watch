@@ -12,7 +12,9 @@ const MARKET_API_URL = `${BIZ_API_BASE_URL}/v1/market`;
  */
 async function getPrices(priceParams) {
   try {
-    return await sendJsonRpcRequest(MARKET_API_URL, 'market.getPrices', priceParams);
+    // 在 Vercel 这类 Serverless 环境中，biz.token.im 可能会超时/被限流，
+    // 这里缩短超时时间，避免函数整体超时导致“没有任何返回”。
+    return await sendJsonRpcRequest(MARKET_API_URL, 'market.getPrices', priceParams, {}, 6000);
   } catch (error) {
     console.log(`  ⚠️  价格API失败: ${error.message}`);
     return await getPricesFromCoinGecko(priceParams);
@@ -38,27 +40,27 @@ async function getPricesFromCoinGecko(priceParams) {
   const symbols = priceParams.map(param => {
     const address = (param.address || '').toLowerCase();
     const chainType = param.chainType || '';
-    
+
     // 原生币识别
     if (!address || address === '0x0000000000000000000000000000000000000000' || address === '' || address === '_') {
       if (chainType === 'BITCOIN') return 'BTC';
       if (chainType === 'ETHEREUM') return 'ETH';
       if (chainType === 'TRON') return 'TRX';
     }
-    
+
     // 常见代币地址映射
     if (address === '0xdac17f958d2ee523a2206206994597c13d831ec7') return 'USDT';
     if (address === '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') return 'USDC';
     if (address === '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2') return 'WETH';
     if (address === '0xf939e0a03fb07f59a73314e73794be0e57ac1b4e') return 'CRVUSD';
     if (address === 'tr7nhqjekqxgtci8q8zy4pl8otszgjlj6t') return 'USDT';
-    
+
     return null;
   }).filter(Boolean);
 
   const uniqueSymbols = [...new Set(symbols)];
   const ids = uniqueSymbols.map(s => tokenMap[s.toUpperCase()]).filter(Boolean).join(',');
-  
+
   if (!ids) {
     return priceParams.map(() => ({ price: 0 }));
   }
@@ -90,7 +92,7 @@ async function getPricesFromCoinGecko(priceParams) {
       const address = (param.address || '').toLowerCase();
       const chainType = param.chainType || '';
       let symbol = null;
-      
+
       if (!address || address === '0x0000000000000000000000000000000000000000' || address === '' || address === '_') {
         if (chainType === 'BITCOIN') symbol = 'BTC';
         if (chainType === 'ETHEREUM') symbol = 'ETH';
@@ -106,7 +108,7 @@ async function getPricesFromCoinGecko(priceParams) {
       } else if (address === 'tr7nhqjekqxgtci8q8zy4pl8otszgjlj6t') {
         symbol = 'USDT';
       }
-      
+
       if (symbol && tokenMap[symbol]) {
         const id = tokenMap[symbol];
         const price = response[id]?.usd || 0;
@@ -126,12 +128,12 @@ async function getPricesFromCoinGecko(priceParams) {
       'WETH': 3500,
       'CRVUSD': 1,
     };
-    
+
     return priceParams.map(param => {
       const address = (param.address || '').toLowerCase();
       const chainType = param.chainType || '';
       let price = 0;
-      
+
       if (!address || address === '0x0000000000000000000000000000000000000000' || address === '' || address === '_') {
         if (chainType === 'BITCOIN') price = defaultPrices.BTC;
         if (chainType === 'ETHEREUM') price = defaultPrices.ETH;
@@ -145,7 +147,7 @@ async function getPricesFromCoinGecko(priceParams) {
       } else if (address === '0xf939e0a03fb07f59a73314e73794be0e57ac1b4e') {
         price = defaultPrices.CRVUSD;
       }
-      
+
       return { price };
     });
   }
@@ -154,4 +156,5 @@ async function getPricesFromCoinGecko(priceParams) {
 module.exports = {
   getPrices,
 };
+
 
