@@ -21,7 +21,12 @@ export async function registerStart(username: string) {
 
             return Result.ok(options);
         }
-        return result;
+
+        // If we reach here, it means success was false or data was missing
+        // We explicitly construct a generic failure result to avoid leaking the internal Result<{options, userId...}> type
+        // which causes TypeScript type mismatch in the client.
+        const errorMessage = typeof result.error === 'string' ? result.error : "Failed to start registration";
+        return Result.fail(errorMessage);
     } catch (err: any) {
         return Result.fail(err.message, err.code);
     }
