@@ -54,7 +54,7 @@ export default async function DashboardLayout({
                     </Link>
 
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {t('cases')}
+                        {t('groups')}
                     </div>
                     <CaseDialog mode="create" />
 
@@ -67,12 +67,7 @@ export default async function DashboardLayout({
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {t('settings_section')}
                     </div>
-                    <Link href="/dashboard/wallets">
-                        <Button variant="ghost" className="w-full justify-start gap-2">
-                            <Wallet className="w-4 h-4" />
-                            {t('my_wallets')}
-                        </Button>
-                    </Link>
+
                     <Link href="/dashboard/settings">
                         <Button variant="ghost" className="w-full justify-start gap-2">
                             <Settings className="w-4 h-4" />

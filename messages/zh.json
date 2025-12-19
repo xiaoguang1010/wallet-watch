@@ -33,10 +33,40 @@
     },
     "Dashboard": {
         "overview": "概览",
-        "cases": "案件",
+        "groups": "分组",
         "settings_section": "设置",
-        "my_wallets": "我的钱包",
         "settings": "系统设置",
-        "add_case": "添加案件"
+        "add_group": "添加分组",
+        "create_group_title": "创建分组",
+        "edit_group_title": "编辑分组",
+        "create_group_desc": "创建一个新的分组来监控多个加密资产地址。",
+        "edit_group_desc": "修改分组信息及监控地址列表。",
+        "group_name": "分组名称",
+        "group_name_placeholder": "输入分组名称 (e.g. My Portfolio)"
+    },
+    "GroupDetails": {
+        "not_found": "分组未找到",
+        "delete_confirm": "确定要删除该分组吗？此操作无法撤销。",
+        "delete_success": "分组删除成功",
+        "delete_fail": "分组删除失败",
+        "edit_group": "编辑分组",
+        "delete": "删除",
+        "total_address": "总监控地址",
+        "total_assets": "资产总估值 (USD)",
+        "from_last_month": "较上月",
+        "asset_dist": "资产分布",
+        "addr_list": "监控地址列表",
+        "chain": "链",
+        "network": "网络",
+        "address": "地址"
+    },
+    "DashboardOverview": {
+        "title": "仪表盘",
+        "subtitle": "您的钱包活动概览。",
+        "total_balance": "总余额",
+        "active_wallets": "活跃钱包",
+        "no_wallets_desc": "暂无监控钱包",
+        "no_activity_title": "暂无活动",
+        "no_activity_desc": "添加您的第一个钱包以开始监控交易和余额。"
     }
 }

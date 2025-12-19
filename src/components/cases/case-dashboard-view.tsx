@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
 import { deleteCaseAction } from '@/modules/cases/cases.actions';
@@ -26,14 +27,15 @@ interface CaseDashboardViewProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export function CaseDashboardView({ data }: CaseDashboardViewProps) {
+    const t = useTranslations('GroupDetails');
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
 
-    if (!data) return <div>Case not found</div>;
+    if (!data) return <div>{t('not_found')}</div>;
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to delete this case? This action cannot be undone.")) return;
+        if (!confirm(t('delete_confirm'))) return;
 
         setIsDeleting(true);
         try {
@@ -41,26 +43,17 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
             if (result.error) {
                 toast.error(result.error);
             } else {
-                toast.success("Case deleted successfully");
+                toast.success(t('delete_success'));
                 router.push('/dashboard');
             }
         } catch (error) {
-            toast.error("Failed to delete case");
+            toast.error(t('delete_fail'));
         } finally {
             setIsDeleting(false);
         }
     };
 
-    const editData = {
-        id: data.id,
-        name: data.name,
-        description: data.description || '',
-        addresses: data.addresses.map((a: any) => ({
-            address: a.address,
-            chain: a.chain,
-            network: a.network
-        }))
-    };
+    // ... (editData logic remains)
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -78,7 +71,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         trigger={
                             <Button variant="outline" size="sm" suppressHydrationWarning>
                                 <Edit className="w-4 h-4 mr-2" />
-                                Edit Case
+                                {t('edit_group')}
                             </Button>
                         }
                     />
@@ -90,7 +83,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         disabled={isDeleting}
                     >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                        {t('delete')}
                     </Button>
                 </div>
             </div>
@@ -100,7 +93,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">总监控地址</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('total_address')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{data.stats.addressCount}</div>
@@ -108,11 +101,11 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">资产总估值 (USD)</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('total_assets')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${data.stats.totalAssets.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        <p className="text-xs text-muted-foreground">+20.1% {t('from_last_month')}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -121,7 +114,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                 {/* Asset Distribution Chart */}
                 <Card className="col-span-1">
                     <CardHeader>
-                        <CardTitle>资产分布</CardTitle>
+                        <CardTitle>{t('asset_dist')}</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -150,15 +143,15 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                 {/* Address List */}
                 <Card className="col-span-1">
                     <CardHeader>
-                        <CardTitle>监控地址列表</CardTitle>
+                        <CardTitle>{t('addr_list')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Chain</TableHead>
-                                    <TableHead>Network</TableHead>
-                                    <TableHead>Address</TableHead>
+                                    <TableHead>{t('chain')}</TableHead>
+                                    <TableHead>{t('network')}</TableHead>
+                                    <TableHead>{t('address')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

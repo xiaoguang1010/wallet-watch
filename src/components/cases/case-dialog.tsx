@@ -95,12 +95,12 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
             if (result.error) {
                 toast.error(typeof result.error === 'string' ? result.error : "Validation failed");
             } else {
-                toast.success(mode === 'create' ? "Case created successfully" : "Case updated successfully");
+                toast.success(mode === 'create' ? "Group created successfully" : "Group updated successfully");
                 setIsOpen(false);
                 if (mode === 'create') form.reset();
             }
         } catch (error) {
-            toast.error(mode === 'create' ? "Failed to create case" : "Failed to update case");
+            toast.error(mode === 'create' ? "Failed to create group" : "Failed to update group");
         } finally {
             setIsSubmitting(false);
         }
@@ -112,15 +112,15 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                 {trigger || (
                     <Button variant="ghost" className="w-full justify-start gap-2" suppressHydrationWarning>
                         <Plus className="w-4 h-4" />
-                        {t('add_case')}
+                        {t('add_group')}
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{mode === 'create' ? '创建监控案件' : '编辑案件'}</DialogTitle>
+                    <DialogTitle>{mode === 'create' ? t('create_group_title') : t('edit_group_title')}</DialogTitle>
                     <DialogDescription>
-                        {mode === 'create' ? '创建一个新的案件来分组监控多个加密资产地址。' : '修改案件信息及监控地址列表。'}
+                        {mode === 'create' ? t('create_group_desc') : t('edit_group_desc')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -130,9 +130,9 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>案件名称</FormLabel>
+                                    <FormLabel>{t('group_name')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="输入案件名称 (e.g. Phishing Scam 2024)" {...field} />
+                                        <Input placeholder={t('group_name_placeholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -145,7 +145,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                                 <FormItem>
                                     <FormLabel>描述 (可选)</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="描述该案件的背景信息" {...field} />
+                                        <Textarea placeholder="描述该分组的背景信息" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -248,7 +248,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                             </Button>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {mode === 'create' ? '创建案件' : '保存修改'}
+                                {mode === 'create' ? '创建分组' : '保存修改'}
                             </Button>
                         </DialogFooter>
                     </form>

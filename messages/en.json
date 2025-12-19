@@ -33,10 +33,40 @@
   },
   "Dashboard": {
     "overview": "Overview",
-    "cases": "CASES",
+    "groups": "Groups",
     "settings_section": "SETTINGS",
-    "my_wallets": "My Wallets",
     "settings": "Settings",
-    "add_case": "Add Case"
+    "add_group": "Add Group",
+    "create_group_title": "Create Group",
+    "edit_group_title": "Edit Group",
+    "create_group_desc": "Create a new group to monitor multiple crypto assets.",
+    "edit_group_desc": "Modify group information and address list.",
+    "group_name": "Group Name",
+    "group_name_placeholder": "Enter group name (e.g. My Portfolio)"
+  },
+  "GroupDetails": {
+    "not_found": "Group not found",
+    "delete_confirm": "Are you sure you want to delete this group? This action cannot be undone.",
+    "delete_success": "Group deleted successfully",
+    "delete_fail": "Failed to delete group",
+    "edit_group": "Edit Group",
+    "delete": "Delete",
+    "total_address": "Total Addresses",
+    "total_assets": "Total Assets (USD)",
+    "from_last_month": "from last month",
+    "asset_dist": "Asset Distribution",
+    "addr_list": "Monitored Addresses",
+    "chain": "Chain",
+    "network": "Network",
+    "address": "Address"
+  },
+  "DashboardOverview": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your wallet activities.",
+    "total_balance": "Total Balance",
+    "active_wallets": "Active Wallets",
+    "no_wallets_desc": "No wallets monitored",
+    "no_activity_title": "No Activity Yet",
+    "no_activity_desc": "Add your first wallet to start monitoring transactions and balances."
   }
 }
