@@ -6,7 +6,7 @@ import { AddAddressDialog } from '@/components/cases/add-address-dialog';
 import { createCaseAction, updateCaseAction, deleteCaseAction } from '@/modules/cases/cases.actions';
 import { toast } from 'sonner';
 import { useRouter, useParams } from 'next/navigation';
-import { findFolderById } from '@/lib/folder-utils';
+import { findFolderById, isDescendantOf } from '@/lib/folder-utils';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
 interface LayoutClientProps {
@@ -92,7 +92,15 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
     };
 
     const handleDeleteFolder = async (folderId: string, folderName: string) => {
-        if (!confirm(`确定要删除「${folderName}」吗？此操作无法撤销。`)) {
+        // Find if this folder has children
+        const folder = findFolderById(folders, folderId);
+        const hasChildren = folder && folder.children.length > 0;
+        
+        const confirmMessage = hasChildren
+            ? `确定要删除「${folderName}」吗？\n\n此操作将同时删除其下所有子分组及监控地址，且无法撤销。`
+            : `确定要删除「${folderName}」吗？\n\n此操作将同时删除该分组下的所有监控地址，且无法撤销。`;
+        
+        if (!confirm(confirmMessage)) {
             return;
         }
 
@@ -104,11 +112,19 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
             } else {
                 toast.success("分组已删除");
                 
-                // If currently viewing the deleted folder, navigate to dashboard
-                if (currentCaseId === folderId) {
+                // Check if we need to navigate away from the current page
+                // Navigate if: 1) viewing the deleted folder, or 2) viewing a descendant of the deleted folder
+                const isViewingDeletedTree = currentCaseId && (
+                    currentCaseId === folderId || 
+                    isDescendantOf(folders, currentCaseId, folderId)
+                );
+                
+                if (isViewingDeletedTree) {
+                    // Navigate to dashboard (away from deleted folder)
                     router.push(`/${locale}/dashboard`);
                 } else {
-                    router.refresh();
+                    // Force a full page refresh to update the sidebar
+                    window.location.href = `/${locale}/dashboard`;
                 }
             }
         } catch (error) {

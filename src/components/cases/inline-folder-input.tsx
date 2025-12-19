@@ -14,7 +14,7 @@ interface InlineFolderInputProps {
     initialValue?: string;
 }
 
-export function InlineFolderInput({ depth, onSave, onCancel, placeholder = "输入名称...", initialValue = '' }: InlineFolderInputProps) {
+export function InlineFolderInput({ depth, onSave, onCancel, placeholder = "请输入分组名称", initialValue = '' }: InlineFolderInputProps) {
     const [name, setName] = useState(initialValue);
     const inputRef = useRef<HTMLInputElement>(null);
 

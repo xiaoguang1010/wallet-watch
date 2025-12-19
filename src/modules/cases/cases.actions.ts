@@ -381,14 +381,20 @@ export async function deleteCaseAction(caseId: string) {
     const user = userResult.data;
 
     try {
-        // Ensure only the owner can delete
-        const result = await db.delete(cases)
-            .where(
-                and(
-                    eq(cases.id, caseId),
-                    eq(cases.userId, user.id)
-                )
-            );
+        // Verify the case belongs to the user
+        const targetCase = await db.query.cases.findFirst({
+            where: and(
+                eq(cases.id, caseId),
+                eq(cases.userId, user.id)
+            ),
+        });
+
+        if (!targetCase) {
+            return { error: "Case not found or unauthorized" };
+        }
+
+        // Recursively delete from leaves to root
+        await deleteCaseRecursive(caseId, user.id);
 
         revalidatePath('/dashboard');
         return { success: true };
@@ -396,6 +402,26 @@ export async function deleteCaseAction(caseId: string) {
         console.error('Error deleting case:', error);
         return { error: error.message || "Failed to delete folder" };
     }
+}
+
+// Helper function to recursively delete cases from leaves to root
+async function deleteCaseRecursive(caseId: string, userId: string): Promise<void> {
+    // First, find all direct children
+    const children = await db.query.cases.findMany({
+        where: and(
+            eq(cases.parentId, caseId),
+            eq(cases.userId, userId)
+        ),
+    });
+
+    // Recursively delete all children first (depth-first, post-order)
+    for (const child of children) {
+        await deleteCaseRecursive(child.id, userId);
+    }
+
+    // After all children are deleted, delete this case
+    // Addresses will be cascade deleted by database foreign key
+    await db.delete(cases).where(eq(cases.id, caseId));
 }
 
 export async function updateCaseAction(caseId: string, input: CreateCaseInput) {

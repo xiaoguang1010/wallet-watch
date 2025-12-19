@@ -64,7 +64,7 @@ export function FolderTree({
                     depth={0}
                     onSave={handleCreateRoot}
                     onCancel={onCancelCreateRoot || (() => {})}
-                    placeholder="输入一级分组名称..."
+                    placeholder="请输入分组名称"
                 />
             )}
             
@@ -167,7 +167,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                     initialValue={folder.name}
                     onSave={handleSaveEdit}
                     onCancel={handleCancelEdit}
-                    placeholder="输入分组名称..."
+                    placeholder="请输入分组名称"
                 />
             ) : (
                 <div
@@ -282,7 +282,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                             depth={depth + 1}
                             onSave={handleSaveInlineFolder}
                             onCancel={handleCancelInlineFolder}
-                            placeholder={`输入${folder.level === 1 ? '二' : '三'}级目录名称...`}
+                            placeholder="请输入分组名称"
                         />
                     )}
                     
