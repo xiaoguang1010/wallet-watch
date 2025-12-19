@@ -1,4 +1,4 @@
-import { mysqlTable, varchar, decimal, text, timestamp, int } from "drizzle-orm/mysql-core";
+import { mysqlTable, varchar, decimal, text, timestamp, int, tinyint } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 import { cases } from "./cases";
 import { monitoredAddresses } from "./addresses";
@@ -45,8 +45,8 @@ export const alertRules = mysqlTable("alert_rules", {
     // 资产清空: { threshold: 0.01 } // 余额低于此值视为清空
     config: text("config").notNull(),
     
-    // 是否启用
-    enabled: int("enabled", { mode: 'boolean' }).default(true).notNull(),
+    // 是否启用 (0 = false, 1 = true)
+    enabled: tinyint("enabled").default(1).notNull(),
     
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
     updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
@@ -78,8 +78,8 @@ export const alerts = mysqlTable("alerts", {
     // 严重程度: 'info' | 'warning' | 'error'
     severity: varchar("severity", { length: 20 }).default('warning').notNull(),
     
-    // 是否已读
-    isRead: int("is_read", { mode: 'boolean' }).default(false).notNull(),
+    // 是否已读 (0 = false, 1 = true)
+    isRead: tinyint("is_read").default(0).notNull(),
     
     // 触发时间
     triggeredAt: timestamp("triggered_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
