@@ -3,19 +3,24 @@
 import { useState } from 'react';
 import { FolderTree } from '@/components/cases/folder-tree';
 import { AddAddressDialog } from '@/components/cases/add-address-dialog';
-import { createCaseAction } from '@/modules/cases/cases.actions';
+import { createCaseAction, updateCaseAction, deleteCaseAction } from '@/modules/cases/cases.actions';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import { findFolderById } from '@/lib/folder-utils';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
 interface LayoutClientProps {
     folders: FolderNode[];
     showCreateRoot: boolean;
     onCancelCreateRoot: () => void;
+    onTriggerCreateRoot: () => void;
 }
 
-export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot }: LayoutClientProps) {
+export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTriggerCreateRoot }: LayoutClientProps) {
     const router = useRouter();
+    const params = useParams();
+    const currentCaseId = params.caseId as string | undefined;
+    const locale = params.locale as string;
     const [addressDialogOpen, setAddressDialogOpen] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState<{ id: string; name: string } | null>(null);
 
@@ -31,6 +36,12 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot }: La
                 toast.error(typeof result.error === 'string' ? result.error : "创建失败");
             } else {
                 toast.success(`${parentId ? '子目录' : '分组'}创建成功`);
+                
+                // Hide the input box if it was a root folder creation
+                if (!parentId) {
+                    onCancelCreateRoot();
+                }
+                
                 router.refresh();
             }
         } catch (error) {
@@ -39,17 +50,7 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot }: La
     };
 
     const handleAddAddresses = (folderId: string) => {
-        // Find folder name from tree
-        const findFolder = (nodes: FolderNode[]): FolderNode | null => {
-            for (const node of nodes) {
-                if (node.id === folderId) return node;
-                const found = findFolder(node.children);
-                if (found) return found;
-            }
-            return null;
-        };
-
-        const folder = findFolder(folders);
+        const folder = findFolderById(folders, folderId);
         if (folder) {
             setSelectedFolder({ id: folder.id, name: folder.name });
             setAddressDialogOpen(true);
@@ -64,14 +65,68 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot }: La
         }
     };
 
+    const handleEditFolder = async (folderId: string, newName: string) => {
+        try {
+            const folder = findFolderById(folders, folderId);
+            if (!folder) {
+                toast.error("分组未找到");
+                return;
+            }
+
+            const result = await updateCaseAction(folderId, {
+                name: newName,
+                description: folder.description || '', // Use empty string instead of undefined
+                parentId: folder.parentId,
+                addresses: [], // Keep existing addresses (backend will handle)
+            });
+
+            if (result.error) {
+                toast.error(typeof result.error === 'string' ? result.error : "更新失败");
+            } else {
+                toast.success("分组名称已更新");
+                router.refresh();
+            }
+        } catch (error) {
+            toast.error("更新失败");
+        }
+    };
+
+    const handleDeleteFolder = async (folderId: string, folderName: string) => {
+        if (!confirm(`确定要删除「${folderName}」吗？此操作无法撤销。`)) {
+            return;
+        }
+
+        try {
+            const result = await deleteCaseAction(folderId);
+            
+            if (result.error) {
+                toast.error(typeof result.error === 'string' ? result.error : "删除失败");
+            } else {
+                toast.success("分组已删除");
+                
+                // If currently viewing the deleted folder, navigate to dashboard
+                if (currentCaseId === folderId) {
+                    router.push(`/${locale}/dashboard`);
+                } else {
+                    router.refresh();
+                }
+            }
+        } catch (error) {
+            toast.error("删除失败");
+        }
+    };
+
     return (
         <>
             <FolderTree 
                 folders={folders} 
                 onCreateSubfolder={handleCreateFolder}
                 onAddAddresses={handleAddAddresses}
+                onEditFolder={handleEditFolder}
+                onDeleteFolder={handleDeleteFolder}
                 showCreateRoot={showCreateRoot}
                 onCancelCreateRoot={onCancelCreateRoot}
+                onTriggerCreateRoot={onTriggerCreateRoot}
             />
             
             {/* Address dialog for level 3 folders */}

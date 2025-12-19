@@ -56,7 +56,7 @@ export default async function DashboardLayout({
                         {t('groups')}
                     </div>
                     
-                    <LayoutWrapper folders={folderTree} addGroupText={t('add_group')} />
+                    <LayoutWrapper folders={folderTree} />
 
                     <div className="pt-4 pb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {t('settings_section')}

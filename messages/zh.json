@@ -39,6 +39,8 @@
         "add_group": "添加分组",
         "create_group_title": "创建分组",
         "edit_group_title": "编辑分组",
+        "edit_group": "编辑分组",
+        "delete": "删除",
         "create_group_desc": "创建一个新的分组来监控多个加密资产地址。支持最多 3 层目录结构。",
         "edit_group_desc": "修改分组信息及监控地址列表。",
         "group_name": "分组名称",

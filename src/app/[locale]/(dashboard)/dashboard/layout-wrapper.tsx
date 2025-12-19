@@ -1,17 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { LayoutClient } from './layout-client';
 import type { FolderNode } from '@/modules/cases/cases.actions';
 
 interface LayoutWrapperProps {
     folders: FolderNode[];
-    addGroupText: string;
 }
 
-export function LayoutWrapper({ folders, addGroupText }: LayoutWrapperProps) {
+export function LayoutWrapper({ folders }: LayoutWrapperProps) {
     const [showCreateRoot, setShowCreateRoot] = useState(false);
 
     const handleAddGroup = () => {
@@ -23,26 +20,14 @@ export function LayoutWrapper({ folders, addGroupText }: LayoutWrapperProps) {
     };
 
     return (
-        <>
-            <Button 
-                variant="ghost" 
-                className="w-full justify-start gap-2" 
-                suppressHydrationWarning
-                onClick={handleAddGroup}
-                disabled={showCreateRoot}
-            >
-                <Plus className="w-4 h-4" />
-                {addGroupText}
-            </Button>
-
-            <div className="space-y-1 mt-1">
-                <LayoutClient 
-                    folders={folders}
-                    showCreateRoot={showCreateRoot}
-                    onCancelCreateRoot={handleCancelCreateRoot}
-                />
-            </div>
-        </>
+        <div className="space-y-1">
+            <LayoutClient 
+                folders={folders}
+                showCreateRoot={showCreateRoot}
+                onCancelCreateRoot={handleCancelCreateRoot}
+                onTriggerCreateRoot={handleAddGroup}
+            />
+        </div>
     );
 }
 

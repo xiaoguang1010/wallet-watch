@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Plus, Trash2, Loader2, Edit } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -57,7 +57,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
         resolver: zodResolver(createCaseSchema),
         defaultValues: {
             name: '',
-            description: '',
+            description: '', // Always use empty string, never null
             parentId: parentId || null,
             addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
         },
@@ -67,7 +67,10 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
     useEffect(() => {
         if (isOpen) {
             if (mode === 'edit' && initialData) {
-                form.reset(initialData);
+                form.reset({
+                    ...initialData,
+                    description: initialData.description || '', // Ensure description is never null
+                });
             } else if (mode === 'create') {
                 form.reset({
                     name: '',

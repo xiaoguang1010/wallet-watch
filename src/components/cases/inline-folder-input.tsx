@@ -11,16 +11,20 @@ interface InlineFolderInputProps {
     onSave: (name: string) => void;
     onCancel: () => void;
     placeholder?: string;
+    initialValue?: string;
 }
 
-export function InlineFolderInput({ depth, onSave, onCancel, placeholder = "输入名称..." }: InlineFolderInputProps) {
-    const [name, setName] = useState('');
+export function InlineFolderInput({ depth, onSave, onCancel, placeholder = "输入名称...", initialValue = '' }: InlineFolderInputProps) {
+    const [name, setName] = useState(initialValue);
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // Auto focus on mount
+        // Auto focus on mount and select all text if editing
         inputRef.current?.focus();
-    }, []);
+        if (initialValue) {
+            inputRef.current?.select();
+        }
+    }, [initialValue]);
 
     const handleSave = () => {
         const trimmedName = name.trim();

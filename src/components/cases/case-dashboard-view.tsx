@@ -56,7 +56,7 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
     const editData = {
         id: data.id,
         name: data.name,
-        description: data.description,
+        description: data.description || '', // Ensure description is never null
         status: data.status,
     };
 
