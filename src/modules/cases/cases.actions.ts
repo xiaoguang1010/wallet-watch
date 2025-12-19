@@ -204,7 +204,7 @@ export async function getAllCasesAddresses() {
         description: '所有分组的钱包地址汇总',
         addresses: allAddresses,
         stats: {
-            caseCount: allCases.length,
+            caseCount: rootCases.length, // 只统计一级目录数量
             totalAssets,
             addressCount: allAddresses.length,
             assetDistribution: assetDist
