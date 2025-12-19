@@ -20,10 +20,11 @@ export async function POST(
     { params }: { params: Promise<{ caseId: string }> }
 ) {
     try {
-        const user = await getCurrentUser();
-        if (!user) {
+        const userResult = await getCurrentUser();
+        if (!userResult.success || !userResult.data) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        const user = userResult.data;
 
         const { caseId } = await params;
         const body = await request.json();

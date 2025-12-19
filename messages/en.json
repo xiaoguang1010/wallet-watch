@@ -78,5 +78,27 @@
     "description": "Groups help you organize and monitor multiple blockchain addresses, making asset management clearer and more efficient.",
     "create_button": "Create Group",
     "skip_button": "Maybe Later"
+  },
+  "Profile": {
+    "title": "Profile",
+    "subtitle": "Manage your account information",
+    "active_status": "Active",
+    "account_details": "Account Details",
+    "account_details_desc": "Your basic account information",
+    "username": "Username",
+    "user_id": "User ID",
+    "created_at": "Member Since",
+    "language": "Language",
+    "total_groups": "Total Groups",
+    "groups_desc": "Groups created",
+    "total_addresses": "Monitored Addresses",
+    "addresses_desc": "Addresses tracked",
+    "account_age": "Account Age",
+    "days_since_joined": "days since joined"
+  },
+  "UserMenu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "signOut": "Sign Out"
   }
 }

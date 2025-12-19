@@ -78,5 +78,27 @@
         "description": "分组可以帮助您组织和监控多个区块链地址的资产情况，让资产管理更加清晰高效。",
         "create_button": "创建分组",
         "skip_button": "稍后再说"
+    },
+    "Profile": {
+        "title": "个人中心",
+        "subtitle": "管理您的账户信息",
+        "active_status": "活跃",
+        "account_details": "账户详情",
+        "account_details_desc": "您的基本账户信息",
+        "username": "用户名",
+        "user_id": "用户 ID",
+        "created_at": "注册时间",
+        "language": "语言偏好",
+        "total_groups": "总分组数",
+        "groups_desc": "已创建分组",
+        "total_addresses": "监控地址",
+        "addresses_desc": "跟踪中的地址",
+        "account_age": "账户年龄",
+        "days_since_joined": "天已加入"
+    },
+    "UserMenu": {
+        "profile": "个人中心",
+        "settings": "系统设置",
+        "signOut": "退出登录"
     }
 }
