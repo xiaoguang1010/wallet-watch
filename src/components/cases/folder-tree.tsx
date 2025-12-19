@@ -1,10 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Edit2, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { InlineFolderInput } from './inline-folder-input';
 import type { FolderNode } from '@/modules/cases/cases.actions';
@@ -203,7 +209,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
 
                     {/* Action Buttons - Show on hover */}
                     {isHovered && (
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
                             {/* Add Button */}
                             {(onCreateSubfolder || onAddAddresses) && (
                                 <Button
@@ -220,33 +226,44 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                                 </Button>
                             )}
                             
-                            {/* Edit Button */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit();
-                                }}
-                                title="编辑分组"
-                            >
-                                <Edit2 className="w-3 h-3" />
-                            </Button>
-                            
-                            {/* Delete Button */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete();
-                                }}
-                                title="删除分组"
-                            >
-                                <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {/* Three-dot Menu */}
+                            <DropdownMenu modal={false}>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <MoreVertical className="w-3 h-3" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent 
+                                    align="end" 
+                                    className="w-32"
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                >
+                                    <DropdownMenuItem
+                                        onSelect={(e) => {
+                                            e.preventDefault();
+                                            handleEdit();
+                                        }}
+                                    >
+                                        <Edit2 className="mr-2 h-4 w-4" />
+                                        <span>编辑</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onSelect={(e) => {
+                                            e.preventDefault();
+                                            handleDelete();
+                                        }}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <span>删除</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     )}
                 </div>
