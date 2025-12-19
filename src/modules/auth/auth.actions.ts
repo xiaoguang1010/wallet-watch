@@ -10,18 +10,46 @@ import { AppError } from "@/core/errors/app-error";
 export async function registerStart(username: string) {
     try {
         const result = await authService.generateRegistrationOptions(username);
-        return result;
+        if (result.success && result.data) {
+            const cookieStore = await cookies();
+            const { options, userId, username: resUsername } = result.data;
+
+            // Store ephemeral context in cookies
+            cookieStore.set("reg_challenge", options.challenge, { httpOnly: true, secure: true, path: "/", maxAge: 60 * 5 });
+            cookieStore.set("reg_user_id", userId, { httpOnly: true, secure: true, path: "/", maxAge: 60 * 5 });
+            cookieStore.set("reg_username", resUsername, { httpOnly: true, secure: true, path: "/", maxAge: 60 * 5 });
+
+            return Result.ok(options);
+        }
+
+        // If we reach here, it means success was false or data was missing
+        // We explicitly construct a generic failure result to avoid leaking the internal Result<{options, userId...}> type
+        // which causes TypeScript type mismatch in the client.
+        const errorMessage = typeof result.error === 'string' ? result.error : "Failed to start registration";
+        return Result.fail(errorMessage);
     } catch (err: any) {
         return Result.fail(err.message, err.code);
     }
 }
 
-export async function registerVerify(userId: string, response: any) {
+export async function registerVerify(clientUserId: string | null, response: any) {
     try {
-        const result = await authService.verifyRegistration(userId, response);
+        const cookieStore = await cookies();
+        const challenge = cookieStore.get("reg_challenge")?.value;
+        const userId = cookieStore.get("reg_user_id")?.value;
+        const username = cookieStore.get("reg_username")?.value;
+
+        // Verify using context from cookies
+        const result = await authService.verifyRegistration(response, challenge!, userId!, username!);
+
         if (result.success && result.data?.userId) {
             // Create session cookie
-            (await cookies()).set("session_user_id", result.data.userId, { httpOnly: true, secure: true, path: "/" });
+            cookieStore.set("session_user_id", result.data.userId, { httpOnly: true, secure: true, path: "/" });
+
+            // Clean up reg cookies
+            cookieStore.delete("reg_challenge");
+            cookieStore.delete("reg_user_id");
+            cookieStore.delete("reg_username");
         }
         return result;
     } catch (err: any) {
