@@ -8,6 +8,7 @@ export const monitoredAddresses = mysqlTable("monitored_addresses", {
     address: varchar("address", { length: 255 }).notNull(),
     chain: varchar("chain", { length: 20 }).notNull(),   // BTC, ETH, TRON
     network: varchar("network", { length: 20 }),         // L1, L2
+    walletName: varchar("wallet_name", { length: 100 }), // 钱包名称
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
     updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
 });

@@ -29,6 +29,13 @@
       "when": 1766139234797,
       "tag": "0003_sudden_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1766156566623,
+      "tag": "0004_steep_earthquake",
+      "breakpoints": true
     }
   ]
 }

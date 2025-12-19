@@ -12,6 +12,7 @@ const addAddressSchema = z.object({
         address: z.string().min(1),
         chain: z.enum(["BTC", "ETH", "TRON"]),
         network: z.enum(["L1", "L2"]).optional(),
+        walletName: z.string().max(100).optional(), // 钱包名称
     })).min(1),
 });
 
@@ -55,6 +56,7 @@ export async function POST(
                 address: addr.address,
                 chain: addr.chain,
                 network: addr.network || 'L1',
+                walletName: addr.walletName || null, // 保存钱包名称
             }))
         );
 

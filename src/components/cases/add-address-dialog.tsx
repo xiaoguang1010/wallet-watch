@@ -38,6 +38,7 @@ const addAddressSchema = z.object({
         address: z.string().min(1, "Address is required"),
         chain: z.enum(["BTC", "ETH", "TRON"]),
         network: z.enum(["L1", "L2"]).optional(),
+        walletName: z.string().max(100).optional(), // 钱包名称
     })).min(1, "At least one address is required")
         .refine((items) => {
             const seen = new Set();
@@ -86,7 +87,7 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange }: A
     const form = useForm<AddAddressInput>({
         resolver: zodResolver(addAddressSchema),
         defaultValues: {
-            addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
+            addresses: [{ address: '', chain: 'ETH', network: 'L1', walletName: '' }],
         },
     });
 
@@ -137,7 +138,7 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange }: A
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({ address: '', chain: 'ETH', network: 'L1' })}
+                                    onClick={() => append({ address: '', chain: 'ETH', network: 'L1', walletName: '' })}
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
                                     添加地址
@@ -189,6 +190,18 @@ export function AddAddressDialog({ folderId, folderName, open, onOpenChange }: A
                                                     )}
                                                 />
                                             </div>
+                                            <FormField
+                                                control={form.control}
+                                                name={`addresses.${index}.walletName`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <Input placeholder="钱包名称（选填）" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
                                             <FormField
                                                 control={form.control}
                                                 name={`addresses.${index}.address`}

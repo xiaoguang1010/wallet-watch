@@ -59,7 +59,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
             name: '',
             description: '', // Always use empty string, never null
             parentId: null,
-            addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
+            addresses: [{ address: '', chain: 'ETH', network: 'L1', walletName: '' }],
         },
     });
 
@@ -76,7 +76,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                     name: '',
                     description: '',
                     parentId: null,
-                    addresses: [{ address: '', chain: 'ETH', network: 'L1' }],
+                    addresses: [{ address: '', chain: 'ETH', network: 'L1', walletName: '' }],
                 });
             }
         }
@@ -172,7 +172,7 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({ address: '', chain: 'ETH', network: 'L1' })}
+                                    onClick={() => append({ address: '', chain: 'ETH', network: 'L1', walletName: '' })}
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
                                     添加地址
@@ -224,6 +224,18 @@ export function CaseDialog({ mode, initialData, trigger, open: controlledOpen, o
                                                     )}
                                                 />
                                             </div>
+                                            <FormField
+                                                control={form.control}
+                                                name={`addresses.${index}.walletName`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <Input placeholder="钱包名称（选填）" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
                                             <FormField
                                                 control={form.control}
                                                 name={`addresses.${index}.address`}

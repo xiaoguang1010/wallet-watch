@@ -280,7 +280,12 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         name: data.name,
         description: data.description || '',
         // 用 directAddresses（仅当前分组的地址）来编辑，避免把子分组地址写回当前分组导致重复展示
-        addresses: data.directAddresses || data.addresses || [],
+        addresses: (data.directAddresses || data.addresses || []).map((addr: any) => ({
+            address: addr.address,
+            chain: addr.chain,
+            network: addr.network || 'L1',
+            walletName: addr.walletName || '', // 字段名已经在后端通过 mapAddress 统一
+        })),
     };
 
     // 判断是否为"所有分组"视图（虚拟汇总视图，不显示编辑/删除按钮）
@@ -489,7 +494,9 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
                                             <Wallet className="w-4 h-4 text-gray-600" />
                                         </div>
-                                        <span className="text-sm font-medium text-gray-900">{data.name}</span>
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {(addr as any).walletName || '未命名钱包'}
+                                        </span>
                                     </div>
                                     <span className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded">Owner</span>
                                 </div>

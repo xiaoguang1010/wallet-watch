@@ -18,9 +18,9 @@ function normalizeAddressForKey(chain: string, address: string) {
     return upper === 'ETH' ? trimmed.toLowerCase() : trimmed;
 }
 
-function dedupeAddresses(addresses: Array<{ address: string; chain: string; network?: string | null }>) {
+function dedupeAddresses(addresses: any[]) {
     const seen = new Set<string>();
-    const result: Array<{ address: string; chain: string; network?: string | null }> = [];
+    const result: any[] = [];
 
     for (const addr of addresses) {
         const chain = (addr.chain || '').trim();
@@ -31,7 +31,7 @@ function dedupeAddresses(addresses: Array<{ address: string; chain: string; netw
         const key = `${chain.toUpperCase()}|${network ?? ''}|${normalizeAddressForKey(chain, address)}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        result.push({ address, chain, network });
+        result.push(addr); // 返回完整的对象，保留所有字段如 walletName
     }
 
     return result;
@@ -98,6 +98,7 @@ export async function createCaseAction(input: CreateCaseInput) {
                 address: addr.address,
                 chain: addr.chain,
                 network: addr.network || null,
+                walletName: addr.walletName || null, // 保存钱包名称
             }));
 
             await db.insert(monitoredAddresses).values(addressValues);
@@ -126,6 +127,19 @@ export async function getUserCases() {
  * 获取当前用户所有 case 的所有地址（递归获取所有子文件夹的地址）
  * 用于在 dashboard 首页显示所有分组的钱包信息
  */
+// 统一地址对象转换
+function mapAddress(addr: any) {
+    return {
+        id: addr.id,
+        caseId: addr.caseId,
+        address: addr.address,
+        chain: addr.chain,
+        network: addr.network,
+        walletName: addr.walletName || addr.wallet_name || null, // 统一字段名为驼峰
+        createdAt: addr.createdAt,
+    };
+}
+
 export async function getAllCasesAddresses() {
     const userResult = await getCurrentUser();
     if (!userResult.success || !userResult.data) return null;
@@ -151,44 +165,34 @@ export async function getAllCasesAddresses() {
         };
     }
 
-    // 递归获取某个 case 及其所有子文件夹的 ID
-    const getAllCaseIdsRecursive = async (caseId: string): Promise<string[]> => {
+    // 递归获取某个 case 及其所有子文件夹的 ID（从内存中查找，减少 DB 调用）
+    const getAllCaseIdsRecursive = (caseId: string): string[] => {
         const result: string[] = [caseId];
-        
-        // 获取所有子文件夹
-        const children = await db.query.cases.findMany({
-            where: and(
-                eq(cases.parentId, caseId),
-                eq(cases.userId, user.id)
-            ),
-        });
-
-        // 递归获取每个子文件夹及其子文件夹
+        const children = allCases.filter(c => c.parentId === caseId);
         for (const child of children) {
-            const childIds = await getAllCaseIdsRecursive(child.id);
-            result.push(...childIds);
+            result.push(...getAllCaseIdsRecursive(child.id));
         }
-
         return result;
     };
 
-    // 只处理根节点（parentId 为 null 的 case），然后递归获取所有子文件夹
+    // 只处理根节点（parentId 为 null 的 case）
     const rootCases = allCases.filter(c => !c.parentId);
     
     // 获取所有 case 的 ID（包括子文件夹）
     const allCaseIds: string[] = [];
     for (const rootCase of rootCases) {
-        const caseIds = await getAllCaseIdsRecursive(rootCase.id);
-        allCaseIds.push(...caseIds);
+        allCaseIds.push(...getAllCaseIdsRecursive(rootCase.id));
     }
 
-    // 去重（虽然理论上不应该有重复，但为了安全起见）
+    // 去重
     const uniqueCaseIds = Array.from(new Set(allCaseIds));
 
     // 获取所有地址
-    const allAddresses = await db.query.monitoredAddresses.findMany({
+    const rawAddresses = await db.query.monitoredAddresses.findMany({
         where: inArray(monitoredAddresses.caseId, uniqueCaseIds),
     });
+
+    const allAddresses = rawAddresses.map(mapAddress);
 
     // Mock Asset Data Calculation
     const totalAssets = allAddresses.length * 1234.56; // Mock value
@@ -356,37 +360,34 @@ export async function getCaseDetails(caseId: string) {
 
     if (!caseData || caseData.userId !== user.id) return null;
 
-    // 递归获取该 case 及其所有子文件夹的地址
-    const getAllChildCaseIds = async (parentId: string): Promise<string[]> => {
-        const children = await db.query.cases.findMany({
-            where: and(
-                eq(cases.parentId, parentId),
-                eq(cases.userId, user.id)
-            ),
-        });
+    // 获取当前用户的所有 case（用于内存递归，减少 DB 调用）
+    const allUserCases = await db.query.cases.findMany({
+        where: eq(cases.userId, user.id),
+    });
 
+    // 递归获取所有子文件夹的 ID
+    const getAllChildCaseIds = (parentId: string): string[] => {
+        const children = allUserCases.filter(c => c.parentId === parentId);
         let childIds: string[] = [];
         for (const child of children) {
             childIds.push(child.id);
-            const grandChildren = await getAllChildCaseIds(child.id);
-            childIds = childIds.concat(grandChildren);
+            childIds = childIds.concat(getAllChildCaseIds(child.id));
         }
-
         return childIds;
     };
 
-    const childCaseIds = await getAllChildCaseIds(caseId);
+    const childCaseIds = getAllChildCaseIds(caseId);
     const allCaseIds = [caseId, ...childCaseIds];
 
-    // 获取该 case 及其所有子文件夹的所有地址（用于 dashboard 展示）
-    const addresses = await db.query.monitoredAddresses.findMany({
+    // 获取该 case 及其所有子文件夹的所有地址
+    const rawAddresses = await db.query.monitoredAddresses.findMany({
         where: inArray(monitoredAddresses.caseId, allCaseIds),
     });
+    
+    const addresses = rawAddresses.map(mapAddress);
 
-    // 仅获取该 case 自己的地址（用于编辑表单，避免把子文件夹地址写回当前 case 导致重复）
-    const directAddresses = await db.query.monitoredAddresses.findMany({
-        where: eq(monitoredAddresses.caseId, caseId),
-    });
+    // 仅获取该 case 自己的地址
+    const directAddresses = addresses.filter(addr => addr.caseId === caseId);
 
     // Mock Asset Data Calculation
     const totalAssets = addresses.length * 1234.56; // Mock value
@@ -541,6 +542,7 @@ export async function updateCaseAction(caseId: string, input: CreateCaseInput) {
                     address: addr.address,
                     chain: addr.chain,
                     network: addr.network || null,
+                    walletName: addr.walletName || null, // 保存钱包名称
                 }));
 
                 await db.insert(monitoredAddresses).values(addressValues);
