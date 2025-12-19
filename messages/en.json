@@ -68,5 +68,11 @@
     "no_wallets_desc": "No wallets monitored",
     "no_activity_title": "No Activity Yet",
     "no_activity_desc": "Add your first wallet to start monitoring transactions and balances."
+  },
+  "EmptyState": {
+    "title": "Create Your First Group",
+    "description": "Groups help you organize and monitor multiple blockchain addresses, making asset management clearer and more efficient.",
+    "create_button": "Create Group",
+    "skip_button": "Maybe Later"
   }
 }

@@ -53,7 +53,12 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         }
     };
 
-    // ... (editData logic remains)
+    const editData = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        status: data.status,
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">

@@ -68,5 +68,11 @@
         "no_wallets_desc": "暂无监控钱包",
         "no_activity_title": "暂无活动",
         "no_activity_desc": "添加您的第一个钱包以开始监控交易和余额。"
+    },
+    "EmptyState": {
+        "title": "创建您的第一个分组",
+        "description": "分组可以帮助您组织和监控多个区块链地址的资产情况，让资产管理更加清晰高效。",
+        "create_button": "创建分组",
+        "skip_button": "稍后再说"
     }
 }
