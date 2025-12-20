@@ -241,9 +241,27 @@ export async function getUserCasesTree(): Promise<FolderNode[]> {
     if (!userResult.success || !userResult.data) return [];
     const user = userResult.data;
 
+    // 🚀 优化：先查询用户的所有分组
     const allCases = await db.query.cases.findMany({
         where: eq(cases.userId, user.id),
         orderBy: [cases.position, desc(cases.createdAt)],
+    });
+
+    // 如果没有分组，直接返回
+    if (allCases.length === 0) return [];
+
+    // 🚀 优化：批量查询所有分组的地址（1次查询代替N次）
+    const caseIds = allCases.map(c => c.id);
+    const allAddresses = await db.query.monitoredAddresses.findMany({
+        where: inArray(monitoredAddresses.caseId, caseIds),
+        columns: { id: true, caseId: true }, // 只查询需要的字段
+    });
+
+    // 🚀 优化：在内存中按 caseId 分组统计地址数量
+    const addressCountMap = new Map<string, number>();
+    allAddresses.forEach(addr => {
+        const count = addressCountMap.get(addr.caseId) || 0;
+        addressCountMap.set(addr.caseId, count + 1);
     });
 
     // Build tree structure
@@ -278,17 +296,14 @@ export async function getUserCasesTree(): Promise<FolderNode[]> {
         }
     });
 
-    // Calculate address counts recursively
-    const calculateAddressCounts = async (node: FolderNode): Promise<number> => {
-        // Get direct addresses for this case
-        const directAddresses = await db.query.monitoredAddresses.findMany({
-            where: eq(monitoredAddresses.caseId, node.id),
-        });
-        let count = directAddresses.length;
+    // 🚀 优化：递归计算地址数量（纯内存操作，无数据库查询）
+    const calculateAddressCounts = (node: FolderNode): number => {
+        // Get direct addresses count from memory map
+        let count = addressCountMap.get(node.id) || 0;
 
         // Add children's addresses recursively
         for (const child of node.children) {
-            count += await calculateAddressCounts(child);
+            count += calculateAddressCounts(child);
         }
 
         node.addressCount = count;
@@ -296,7 +311,7 @@ export async function getUserCasesTree(): Promise<FolderNode[]> {
     };
 
     for (const root of rootNodes) {
-        await calculateAddressCounts(root);
+        calculateAddressCounts(root);
     }
 
     return rootNodes;

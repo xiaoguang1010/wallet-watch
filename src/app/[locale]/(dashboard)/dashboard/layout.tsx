@@ -39,11 +39,14 @@ export default async function DashboardLayout({
         redirect({ href: "/auth/login", locale });
     }
 
-    const t = await getTranslations('Dashboard');
-    const tMenu = await getTranslations('UserMenu');
-    const folderTree = await getUserCasesTree();
+    // 🚀 优化：并行加载翻译和数据，减少等待时间
+    const [t, tMenu, folderTree, userResult] = await Promise.all([
+        getTranslations('Dashboard'),
+        getTranslations('UserMenu'),
+        getUserCasesTree(),
+        getCurrentUser(),
+    ]);
     
-    const userResult = await getCurrentUser();
     const user = userResult.success ? userResult.data : null;
     const userInitials = user?.username.substring(0, 2).toUpperCase() || 'U';
 
