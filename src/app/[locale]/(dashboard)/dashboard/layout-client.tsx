@@ -32,7 +32,7 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
                 addresses: [], // Create folder without addresses
             });
 
-            if (result.error) {
+            if (result.error || !result.success || !result.id) {
                 toast.error(typeof result.error === 'string' ? result.error : "创建失败");
             } else {
                 toast.success(`${parentId ? '子目录' : '分组'}创建成功`);
@@ -42,6 +42,8 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
                     onCancelCreateRoot();
                 }
                 
+                // 跳转到新建的分组详情页
+                router.push(`/${locale}/dashboard/cases/${result.id}`);
                 router.refresh();
             }
         } catch (error) {

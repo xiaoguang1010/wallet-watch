@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreVertical, Edit2, Trash2, GripVertical } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ export function FolderTree({
     }, [folders]);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+        useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
     );
 
     // Helpers to find parentId
@@ -127,12 +127,18 @@ export function FolderTree({
                 return [];
             };
 
+            if (parentActive !== parentOver) {
+                // 不允许跨父节点拖拽
+                return;
+            }
+
             const siblings = getSiblings(tree, parentActive);
             const oldIndex = siblings.findIndex(n => n.id === active.id);
             const newIndex = siblings.findIndex(n => n.id === over.id);
             if (oldIndex === -1 || newIndex === -1) return;
 
             const newOrderIds = arrayMove(siblings.map(n => n.id), oldIndex, newIndex);
+            const prevTree = tree;
             const newTree = reorderTree(tree, parentActive, newOrderIds);
             setTree(newTree);
 
@@ -148,6 +154,7 @@ export function FolderTree({
                 });
             } catch (e) {
                 console.error('Reorder failed', e);
+                setTree(prevTree); // rollback on failure
             }
         },
         [tree, findParentId, reorderTree]
@@ -239,13 +246,13 @@ function SortableFolderNode(props: FolderTreeNodeProps) {
         opacity: isDragging ? 0.5 : 1,
     };
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <FolderTreeNode {...props} />
+        <div ref={setNodeRef} style={style}>
+            <FolderTreeNode {...props} dragHandleProps={{ attributes, listeners }} />
         </div>
     );
 }
 
-function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick, renderChildren }: FolderTreeNodeProps) {
+function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick, renderChildren, dragHandleProps }: FolderTreeNodeProps & { dragHandleProps?: { attributes: any; listeners: any } }) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [showInlineInput, setShowInlineInput] = useState(false);
@@ -333,6 +340,14 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
+                    {/* Drag handle to reduce 误触 */}
+                    <button
+                        className="w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab"
+                        onClick={(e) => e.stopPropagation()}
+                        {...(dragHandleProps || {})}
+                    >
+                        <GripVertical className="w-3 h-3" />
+                    </button>
                     {/* Expand/Collapse Icon */}
                     <button
                         onClick={handleToggle}
