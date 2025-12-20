@@ -77,6 +77,22 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
         });
     };
 
+    const handleDeleteAddress = async (addressId: string, addressLabel: string) => {
+        const ok = confirm(`确定要删除监控地址：\n${addressLabel}\n此操作不可撤销。`);
+        if (!ok) return;
+        try {
+            const res = await fetch(`/api/addresses/${addressId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                toast.error('删除失败');
+                return;
+            }
+            toast.success('监控地址已删除');
+            router.refresh();
+        } catch (err) {
+            toast.error('删除失败');
+        }
+    };
+
     // Fetch balances function (extracted for reuse)
     const fetchBalances = useCallback(async (showLoading = false) => {
         if (!data?.id || !data?.addresses || data.addresses.length === 0) {
@@ -487,7 +503,17 @@ export function CaseDashboardView({ data }: CaseDashboardViewProps) {
                         const tokensExpanded = expandedTokenSections.has(addressId);
 
                         return (
-                            <div key={addr.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                            <div key={addr.id} className="relative group bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                                {/* Delete button on hover */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteAddress(addr.id, addr.address)}
+                                    className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-7 h-7 rounded-full bg-white border border-red-200 shadow-sm flex items-center justify-center hover:scale-105"
+                                    title="删除监控地址"
+                                >
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
