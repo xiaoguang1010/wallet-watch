@@ -9,6 +9,7 @@ export const cases = mysqlTable("cases", {
     description: text("description"),
     parentId: varchar("parent_id", { length: 36 }),
     level: int("level").notNull().default(1), // 1, 2, or 3
+    position: int("position").notNull().default(0), // ordering within same parent
     status: varchar("status", { length: 20 }).default('active').notNull(),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
     updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),

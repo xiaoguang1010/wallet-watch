@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -14,6 +14,20 @@ import {
 import { cn } from '@/lib/utils';
 import { InlineFolderInput } from './inline-folder-input';
 import type { FolderNode } from '@/modules/cases/cases.actions';
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FolderTreeProps {
     folders: FolderNode[];
@@ -39,12 +53,112 @@ export function FolderTree({
     onFolderClick
 }: FolderTreeProps) {
     const t = useTranslations('Dashboard');
+    const [tree, setTree] = useState<FolderNode[]>(folders);
+
+    useEffect(() => {
+        setTree(folders);
+    }, [folders]);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    );
+
+    // Helpers to find parentId
+    const findParentId = useCallback((nodes: FolderNode[], id: string, parentId: string | null = null): string | null => {
+        for (const node of nodes) {
+            if (node.id === id) return parentId;
+            const childResult = findParentId(node.children || [], id, node.id);
+            if (childResult !== null) return childResult;
+        }
+        return null;
+    }, []);
+
+    // Reorder children for a given parent
+    const reorderTree = useCallback((nodes: FolderNode[], parentId: string | null, orderedIds: string[]): FolderNode[] => {
+        const clone = nodes.map(n => ({ ...n, children: n.children ? [...n.children] : [] }));
+        const reorderList = (list: FolderNode[], ids: string[]) => {
+            const map = new Map(list.map(item => [item.id, item]));
+            return ids.map(id => map.get(id)!).filter(Boolean);
+        };
+
+        if (parentId === null) {
+            return reorderList(clone, orderedIds);
+        }
+
+        const dfs = (list: FolderNode[]): FolderNode[] => {
+            return list.map(node => {
+                if (node.id === parentId) {
+                    return {
+                        ...node,
+                        children: reorderList(node.children || [], orderedIds),
+                    };
+                }
+                if (node.children && node.children.length > 0) {
+                    return { ...node, children: dfs(node.children) };
+                }
+                return node;
+            });
+        };
+
+        return dfs(clone);
+    }, []);
+
+    const handleDragEnd = useCallback(
+        async (event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over || active.id === over.id) return;
+
+            const parentActive = findParentId(tree, String(active.id));
+            const parentOver = findParentId(tree, String(over.id));
+            if (parentActive !== parentOver) {
+                // 不允许跨父节点拖拽
+                return;
+            }
+
+            // 获取同父节点的有序列表
+            const getSiblings = (nodes: FolderNode[], pid: string | null): FolderNode[] => {
+                if (pid === null) return nodes;
+                const stack = [...nodes];
+                while (stack.length) {
+                    const n = stack.pop()!;
+                    if (n.id === pid) return n.children || [];
+                    if (n.children) stack.push(...n.children);
+                }
+                return [];
+            };
+
+            const siblings = getSiblings(tree, parentActive);
+            const oldIndex = siblings.findIndex(n => n.id === active.id);
+            const newIndex = siblings.findIndex(n => n.id === over.id);
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            const newOrderIds = arrayMove(siblings.map(n => n.id), oldIndex, newIndex);
+            const newTree = reorderTree(tree, parentActive, newOrderIds);
+            setTree(newTree);
+
+            // call reorder API
+            try {
+                await fetch('/api/cases/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        parentId: parentActive,
+                        orderedIds: newOrderIds,
+                    }),
+                });
+            } catch (e) {
+                console.error('Reorder failed', e);
+            }
+        },
+        [tree, findParentId, reorderTree]
+    );
     
     const handleCreateRoot = (name: string) => {
         onCreateSubfolder?.(null, name);
     };
 
     return (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="space-y-1">
             {/* Add Group Button - Always visible */}
             <Button 
@@ -69,18 +183,39 @@ export function FolderTree({
             )}
             
             {/* Folder Nodes */}
-            {folders.map((folder) => (
-                <FolderTreeNode
-                    key={folder.id}
-                    folder={folder}
-                    onCreateSubfolder={onCreateSubfolder}
-                    onAddAddresses={onAddAddresses}
-                    onEditFolder={onEditFolder}
-                    onDeleteFolder={onDeleteFolder}
-                    onFolderClick={onFolderClick}
-                />
-            ))}
+            <SortableContext items={tree.map(f => f.id)}>
+                {tree.map((folder) => (
+                    <SortableFolderNode
+                        key={folder.id}
+                        folder={folder}
+                        depth={0}
+                        onCreateSubfolder={onCreateSubfolder}
+                        onAddAddresses={onAddAddresses}
+                        onEditFolder={onEditFolder}
+                        onDeleteFolder={onDeleteFolder}
+                        onFolderClick={onFolderClick}
+                        renderChildren={(children) => (
+                            <SortableContext items={children.map(c => c.id)}>
+                                {children.map(child => (
+                                    <SortableFolderNode
+                                        key={child.id}
+                                        folder={child}
+                                        depth={1}
+                                        onCreateSubfolder={onCreateSubfolder}
+                                        onAddAddresses={onAddAddresses}
+                                        onEditFolder={onEditFolder}
+                                        onDeleteFolder={onDeleteFolder}
+                                        onFolderClick={onFolderClick}
+                                        renderChildren={() => null} // no third level
+                                    />
+                                ))}
+                            </SortableContext>
+                        )}
+                    />
+                ))}
+            </SortableContext>
         </div>
+        </DndContext>
     );
 }
 
@@ -92,9 +227,25 @@ interface FolderTreeNodeProps {
     onEditFolder?: (folderId: string, currentName: string) => void;
     onDeleteFolder?: (folderId: string, folderName: string) => void;
     onFolderClick?: (caseId: string, folderName: string) => void; // 新增
+    renderChildren?: (children: FolderNode[]) => React.ReactNode;
 }
 
-function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick }: FolderTreeNodeProps) {
+function SortableFolderNode(props: FolderTreeNodeProps) {
+    const { folder } = props;
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: folder.id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <FolderTreeNode {...props} />
+        </div>
+    );
+}
+
+function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick, renderChildren }: FolderTreeNodeProps) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [showInlineInput, setShowInlineInput] = useState(false);
@@ -287,18 +438,7 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                     )}
                     
                     {/* Existing children */}
-                    {hasChildren && folder.children.map((child) => (
-                        <FolderTreeNode
-                            key={child.id}
-                            folder={child}
-                            depth={depth + 1}
-                            onCreateSubfolder={onCreateSubfolder}
-                            onAddAddresses={onAddAddresses}
-                            onEditFolder={onEditFolder}
-                            onDeleteFolder={onDeleteFolder}
-                            onFolderClick={onFolderClick}
-                        />
-                    ))}
+                    {hasChildren && renderChildren ? renderChildren(folder.children) : null}
                 </div>
             )}
         </div>

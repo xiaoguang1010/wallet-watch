@@ -7,7 +7,7 @@ import { monitoredAddresses } from '@/data/schema/addresses';
 import { getCurrentUser } from '@/modules/auth/auth.actions';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 import { redirect } from '@/i18n/routing';
 import { createCaseSchema, CreateCaseInput } from './cases.schema';
 
@@ -78,6 +78,16 @@ export async function createCaseAction(input: CreateCaseInput) {
             level = parentFolder.level + 1;
         }
 
+        // Determine position (append to end within same parent)
+        const parentCondition = parentId ? eq(cases.parentId, parentId) : sql`parent_id IS NULL`;
+        const maxPosResult = await db.select({
+            maxPos: sql<number>`COALESCE(MAX(${cases.position}), 0)`,
+        })
+        .from(cases)
+        .where(and(eq(cases.userId, user.id), parentCondition));
+
+        const nextPosition = (maxPosResult[0]?.maxPos ?? 0) + 1;
+
         // Create the case
         await db.insert(cases).values({
             id: caseId,
@@ -86,6 +96,7 @@ export async function createCaseAction(input: CreateCaseInput) {
             description: description || null,
             parentId: parentId || null,
             level,
+            position: nextPosition,
             status: 'active',
         });
 
@@ -232,7 +243,7 @@ export async function getUserCasesTree(): Promise<FolderNode[]> {
 
     const allCases = await db.query.cases.findMany({
         where: eq(cases.userId, user.id),
-        orderBy: [desc(cases.createdAt)],
+        orderBy: [cases.position, desc(cases.createdAt)],
     });
 
     // Build tree structure
