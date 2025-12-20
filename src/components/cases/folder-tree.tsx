@@ -21,13 +21,16 @@ import {
     useSensor,
     useSensors,
     DragEndEvent,
+    type DraggableAttributes,
 } from '@dnd-kit/core';
+import type { DraggableSyntheticListeners } from '@dnd-kit/core';
 import {
     SortableContext,
     useSortable,
     arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { toast } from 'sonner';
 
 interface FolderTreeProps {
     folders: FolderNode[];
@@ -54,13 +57,19 @@ export function FolderTree({
 }: FolderTreeProps) {
     const t = useTranslations('Dashboard');
     const [tree, setTree] = useState<FolderNode[]>(folders);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setTree(folders);
     }, [folders]);
 
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // useSensors 本身是 Hook，不能包裹在 useMemo 中
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }) // 适中距离，兼顾防误触和易用性
     );
 
     // Helpers to find parentId
@@ -110,10 +119,8 @@ export function FolderTree({
 
             const parentActive = findParentId(tree, String(active.id));
             const parentOver = findParentId(tree, String(over.id));
-            if (parentActive !== parentOver) {
-                // 不允许跨父节点拖拽
-                return;
-            }
+            // 仅当同一父节点（或同为根）才允许排序
+            if (parentActive !== parentOver) return;
 
             // 获取同父节点的有序列表
             const getSiblings = (nodes: FolderNode[], pid: string | null): FolderNode[] => {
@@ -127,11 +134,6 @@ export function FolderTree({
                 return [];
             };
 
-            if (parentActive !== parentOver) {
-                // 不允许跨父节点拖拽
-                return;
-            }
-
             const siblings = getSiblings(tree, parentActive);
             const oldIndex = siblings.findIndex(n => n.id === active.id);
             const newIndex = siblings.findIndex(n => n.id === over.id);
@@ -144,7 +146,7 @@ export function FolderTree({
 
             // call reorder API
             try {
-                await fetch('/api/cases/reorder', {
+                const response = await fetch('/api/cases/reorder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -152,8 +154,13 @@ export function FolderTree({
                         orderedIds: newOrderIds,
                     }),
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`Reorder failed: ${response.statusText}`);
+                }
             } catch (e) {
                 console.error('Reorder failed', e);
+                toast.error('排序失败，已恢复原顺序');
                 setTree(prevTree); // rollback on failure
             }
         },
@@ -164,8 +171,8 @@ export function FolderTree({
         onCreateSubfolder?.(null, name);
     };
 
-    return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    // Render folder tree content
+    const renderFolderTree = () => (
         <div className="space-y-1">
             {/* Add Group Button - Always visible */}
             <Button 
@@ -190,9 +197,42 @@ export function FolderTree({
             )}
             
             {/* Folder Nodes */}
-            <SortableContext items={tree.map(f => f.id)}>
-                {tree.map((folder) => (
-                    <SortableFolderNode
+            {mounted ? (
+                <SortableContext items={tree.map(f => f.id)}>
+                    {tree.map((folder) => (
+                        <SortableFolderNode
+                            key={folder.id}
+                            folder={folder}
+                            depth={0}
+                            onCreateSubfolder={onCreateSubfolder}
+                            onAddAddresses={onAddAddresses}
+                            onEditFolder={onEditFolder}
+                            onDeleteFolder={onDeleteFolder}
+                            onFolderClick={onFolderClick}
+                            renderChildren={(children) => (
+                                <SortableContext items={children.map(c => c.id)}>
+                                    {children.map(child => (
+                                        <SortableFolderNode
+                                            key={child.id}
+                                            folder={child}
+                                            depth={1}
+                                            onCreateSubfolder={onCreateSubfolder}
+                                            onAddAddresses={onAddAddresses}
+                                            onEditFolder={onEditFolder}
+                                            onDeleteFolder={onDeleteFolder}
+                                            onFolderClick={onFolderClick}
+                                            renderChildren={() => null} // no third level
+                                        />
+                                    ))}
+                                </SortableContext>
+                            )}
+                        />
+                    ))}
+                </SortableContext>
+            ) : (
+                // SSR fallback: render static folder nodes
+                tree.map((folder) => (
+                    <StaticFolderNode
                         key={folder.id}
                         folder={folder}
                         depth={0}
@@ -202,9 +242,9 @@ export function FolderTree({
                         onDeleteFolder={onDeleteFolder}
                         onFolderClick={onFolderClick}
                         renderChildren={(children) => (
-                            <SortableContext items={children.map(c => c.id)}>
+                            <>
                                 {children.map(child => (
-                                    <SortableFolderNode
+                                    <StaticFolderNode
                                         key={child.id}
                                         folder={child}
                                         depth={1}
@@ -213,17 +253,29 @@ export function FolderTree({
                                         onEditFolder={onEditFolder}
                                         onDeleteFolder={onDeleteFolder}
                                         onFolderClick={onFolderClick}
-                                        renderChildren={() => null} // no third level
+                                        renderChildren={() => null}
                                     />
                                 ))}
-                            </SortableContext>
+                            </>
                         )}
                     />
-                ))}
-            </SortableContext>
+                ))
+            )}
         </div>
-        </DndContext>
     );
+
+    return mounted ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            {renderFolderTree()}
+        </DndContext>
+    ) : (
+        renderFolderTree()
+    );
+}
+
+interface DragHandleProps {
+    attributes: DraggableAttributes;
+    listeners: DraggableSyntheticListeners;
 }
 
 interface FolderTreeNodeProps {
@@ -233,7 +285,7 @@ interface FolderTreeNodeProps {
     onAddAddresses?: (folderId: string) => void;
     onEditFolder?: (folderId: string, currentName: string) => void;
     onDeleteFolder?: (folderId: string, folderName: string) => void;
-    onFolderClick?: (caseId: string, folderName: string) => void; // 新增
+    onFolderClick?: (caseId: string, folderName: string) => void;
     renderChildren?: (children: FolderNode[]) => React.ReactNode;
 }
 
@@ -252,7 +304,15 @@ function SortableFolderNode(props: FolderTreeNodeProps) {
     );
 }
 
-function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick, renderChildren, dragHandleProps }: FolderTreeNodeProps & { dragHandleProps?: { attributes: any; listeners: any } }) {
+function StaticFolderNode(props: FolderTreeNodeProps) {
+    return (
+        <div>
+            <FolderTreeNode {...props} />
+        </div>
+    );
+}
+
+function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, onEditFolder, onDeleteFolder, onFolderClick, renderChildren, dragHandleProps }: FolderTreeNodeProps & { dragHandleProps?: DragHandleProps }) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [showInlineInput, setShowInlineInput] = useState(false);
@@ -265,7 +325,6 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
 
     const hasChildren = folder.children.length > 0;
     const isActive = currentCaseId === folder.id;
-    const canHaveChildren = folder.level < 2; // Only level 1 can have children (now max 2 levels)
     const isLevel2 = folder.level === 2; // Level 2 folders can only add addresses
 
     const handleClick = () => {
@@ -340,14 +399,20 @@ function FolderTreeNode({ folder, depth = 0, onCreateSubfolder, onAddAddresses, 
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
-                    {/* Drag handle to reduce 误触 */}
-                    <button
-                        className="w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab"
-                        onClick={(e) => e.stopPropagation()}
-                        {...(dragHandleProps || {})}
-                    >
-                        <GripVertical className="w-3 h-3" />
-                    </button>
+                    {/* Drag handle to reduce 误触 - only show when draggable */}
+                    {dragHandleProps ? (
+                        <button
+                            className="w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab"
+                            style={{ touchAction: 'none' }} // 让指针事件优先给 dnd-kit
+                            onClick={(e) => e.stopPropagation()}
+                            {...dragHandleProps.attributes}
+                            {...dragHandleProps.listeners}
+                        >
+                            <GripVertical className="w-3 h-3" />
+                        </button>
+                    ) : (
+                        <div className="w-5 h-5" /> // Spacer for SSR
+                    )}
                     {/* Expand/Collapse Icon */}
                     <button
                         onClick={handleToggle}

@@ -135,7 +135,7 @@ export function LayoutClient({ folders, showCreateRoot, onCancelCreateRoot, onTr
                 onTriggerCreateRoot={onTriggerCreateRoot}
             />
             
-            {/* Address dialog for level 3 folders */}
+            {/* Address dialog for level 2 folders */}
             {selectedFolder && (
                 <AddAddressDialog
                     folderId={selectedFolder.id}
