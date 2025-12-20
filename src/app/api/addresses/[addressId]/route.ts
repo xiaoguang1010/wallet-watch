@@ -4,6 +4,7 @@ import { monitoredAddresses } from '@/data/schema/addresses';
 import { cases } from '@/data/schema/cases';
 import { getCurrentUser } from '@/modules/auth/auth.actions';
 import { eq, and } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 export async function DELETE(
     _req: NextRequest,
@@ -35,6 +36,10 @@ export async function DELETE(
         }
 
         await db.delete(monitoredAddresses).where(eq(monitoredAddresses.id, addressId));
+
+        // Revalidate dashboards to refresh totals/counts
+        revalidatePath('/dashboard');
+        revalidatePath(`/dashboard/cases/${caseRow.id}`);
 
         return NextResponse.json({ success: true });
     } catch (error) {
